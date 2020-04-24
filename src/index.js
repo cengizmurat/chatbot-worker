@@ -10,6 +10,17 @@ app.use(bodyParser.urlencoded({
 
 async function init() {
     app.use(cors);
+    app.use(function(req, res, next) {
+        console.log({
+            headers: req.headers,
+            url: req.url,
+            method: req.method,
+            params: req.params,
+            query: req.query,
+            body: req.body,
+        })
+        next()
+    })
     app.use('/', router);
     app.use(handleError);
 
