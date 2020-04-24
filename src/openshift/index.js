@@ -27,9 +27,7 @@ async function createProject(req, res, next) {
         next(new Error('Missing parameter "project"'))
     } else if (username === undefined) {
         next(new Error('Missing parameter "username"'))
-    }
-
-    try {
+    } else try {
         const projectObj = await utils.createProjectRequest(project)
         await utils.updateProjectAnnotations(projectObj, username)
         await utils.addUserToRolebinding(projectObj.metadata.name, 'subadmin', username)
@@ -92,9 +90,7 @@ async function addUserToProject(req, res, next) {
         next(new Error('Missing parameter "role"'))
     } else if (username === undefined) {
         next(new Error('Missing parameter "username"'))
-    }
-
-    try {
+    } else try {
         const response = await utils.addUserToRolebinding(project, role, username)
         await res.json(response)
     } catch (e) {
@@ -106,19 +102,23 @@ async function removeUserFromProject(req, res, next) {
     const projectName = req.params['project']
     const username = req.params['username']
 
-    const roleBindings = await utils.getRoleBindings(projectName)
-    for (const roleBinding of roleBindings.items) {
-        if (roleBinding.roleRef.name !== 'admin') {
-            const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(username) !== -1
-            if (isSubject) {
-                roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== username)
-                roleBinding.roleRef.kind = roleBinding.roleRef.kind || 'ClusterRole'
-                await utils.updateRoleBinding(roleBinding, projectName)
+    try {
+        const roleBindings = await utils.getRoleBindings(projectName)
+        for (const roleBinding of roleBindings.items) {
+            if (roleBinding.roleRef.name !== 'admin') {
+                const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(username) !== -1
+                if (isSubject) {
+                    roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== username)
+                    roleBinding.roleRef.kind = roleBinding.roleRef.kind || 'ClusterRole'
+                    await utils.updateRoleBinding(roleBinding, projectName)
+                }
             }
         }
-    }
 
-    await res.json(await utils.getRoleBindings(projectName))
+        await res.json(await utils.getRoleBindings(projectName))
+    } catch (e) {
+        next(e)
+    }
 }
 
 module.exports = router
