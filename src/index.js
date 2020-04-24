@@ -32,6 +32,7 @@ async function cors(req, res, next) {
 }
 
 async function handleError(err, req, res, next) {
+    console.error(err)
     const response = err.response
     if (response && response.data) {
         res.status(response.data.code)
