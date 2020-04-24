@@ -10,6 +10,7 @@ app.use(bodyParser.urlencoded({
 
 async function init() {
     app.use(cors);
+    app.use(preprocessRequest)
     app.use(function(req, res, next) {
         console.log({
             headers: req.headers,
@@ -40,6 +41,14 @@ async function cors(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     next();
+}
+
+function preprocessRequest(req, res, next) {
+    const entries = Object.entries(req.body)
+    if (entries.length > 0 && entries[0][1] === '') {
+        req.body = JSON.parse(entries[0][0])
+    }
+    next()
 }
 
 async function handleError(err, req, res, next) {
