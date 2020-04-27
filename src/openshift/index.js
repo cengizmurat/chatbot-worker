@@ -4,14 +4,6 @@ const utils = require('./utils')
 
 const router = express.Router()
 
-router.use(async function (req, res, next) {
-    try {
-        await next()
-    } catch (e) {
-        next(e)
-    }
-})
-
 router.post('/projects', createProject)
 router.get('/projects', getProjects)
 router.delete('/projects/:project', deleteProject)
@@ -51,6 +43,7 @@ async function getProjects(req, res, next) {
                     for (const subject of rolebinding.subjects) {
                         if (subject.name === username) {
                             projects.push(roleMetadata.namespace)
+                            break
                         }
                     }
                 }

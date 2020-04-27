@@ -3,10 +3,16 @@ const fs = require('fs');
 const configFile = 'config.json';
 
 let config = {};
-const variables = ['OPENSHIFT_URL', 'OPENSHIFT_TOKEN'];
+const variables = ['OPENSHIFT_URL'];
 // Optional variables and their default values
 const optionalVariables = {
   'PORT': '3000',
+  'OPENSHIFT_TOKEN': undefined,
+  'IAMAAS_URL': undefined,
+  'CLIENT_ID': undefined,
+  'CLIENT_SECRET': undefined,
+  'SCOPE': undefined,
+  'CLUSTER_NAME': undefined,
 };
 
 if (fs.existsSync(configFile)) {

@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 
+const config = require('../config.js')
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -30,7 +32,12 @@ async function init() {
 
 const router = express.Router();
 router.get('/', homeUrl);
-router.use('/openshift', require('./openshift'));
+
+if (config.OPENSHIFT_TOKEN !== undefined) {
+    router.use('/openshift', require('./openshift'));
+} else if (config.IAMAAS_URL !== undefined) {
+    router.use('/openshift', require('./oseaas'));
+}
 
 async function homeUrl(req, res, next) {
     res.statusCode = 200;
