@@ -15,10 +15,9 @@ async function getToken() {
         scope: config.SCOPE,
     }
 
-    const response = await axios.post(`${config.IAMAAS_URL}/v2/oauth/token`, body, {
+    const response = await axios.post(`${config.IAMAAS_URL}/v2/oauth2/token`, body, {
         headers: {
             'Content-Type': 'application/json',
-            'Accept': '*/*',
         }
     })
     return response.data
