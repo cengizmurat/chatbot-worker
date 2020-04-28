@@ -56,6 +56,8 @@ async function getProjects(req, res, next) {
                     await res.json(projects)
                 }
             }, 500)
+        } else {
+            await res.json(projects)
         }
     } catch (e) {
         next(e)
