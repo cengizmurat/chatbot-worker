@@ -40,9 +40,8 @@ async function getProjects(clusterName) {
             projects.push(project.substring(0, project.length - (clusterName.length + 1)))
         }
     }
-    data.projects = projects
 
-    return data
+    return projects
 }
 
 async function getRoleBindings(clusterName, project) {
