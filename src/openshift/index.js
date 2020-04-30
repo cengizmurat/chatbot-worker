@@ -13,7 +13,7 @@ router.post('/projects/:project/rolebindings', addUserToProject)
 router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
 
 async function createProject(req, res, next) {
-    const {project, username} = req.body;
+    const {project, username} = req.body
 
     if (project === undefined) {
         next(new Error('Missing parameter "project"'))

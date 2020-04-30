@@ -6,7 +6,49 @@ const utils = require('./utils')
 const router = express.Router()
 const clusterName = config.CLUSTER_NAME
 
+const pollingRate = 1000 // in milliseconds
+
+router.post('/projects', createProject)
 router.get('/projects', getProjects)
+router.delete('/projects/:project', deleteProject)
+
+//router.get('/projects/:project/rolebindings', getRoleBindings)
+router.post('/projects/:project/rolebindings', addUserToProject)
+//router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
+
+async function createProject(req, res, next) {
+    const {project, username} = req.body
+    const role = 'edit'
+
+    try {
+        const project = await utils.createProject(clusterName, project)
+        const intervalID1 = setInterval(async function() {
+            const result = await utils.operationResult(project.operation_id)
+            const operation = result.operation
+            if (operation && operation.state !== 'running') {
+                clearInterval(intervalID1)
+                const postProject = result.details[`post_project_${clusterName}`]
+                const bodyProject = postProject.body
+                if (operation.state === 'success') {
+                    const response = await utils.addRoleBinding(clusterName, bodyProject.metadata.name, username, role)
+                    const intervalID2 = setInterval(async function() {
+                        const postRoleBinding = await utils.addRoleBindingResult(response.operation_id, clusterName, username, role)
+                        if (postRoleBinding) {
+                            clearInterval(intervalID2)
+                            res.status(postRoleBinding.code)
+                            await res.json(postRoleBinding.body)
+                        }
+                    }, pollingRate)
+                } else {
+                    res.status(postProject.code)
+                    await res.json(bodyProject)
+                }
+            }
+        }, pollingRate)
+    } catch (e) {
+        next(e)
+    }
+}
 
 async function getProjects(req, res, next) {
     const username = req.query['username']
@@ -51,7 +93,7 @@ async function getProjects(req, res, next) {
                         clearInterval(intervalID)
                         next(e)
                     }
-                }, 1000)
+                }, pollingRate)
                 intervals.push(intervalId)
             }
 
@@ -60,13 +102,49 @@ async function getProjects(req, res, next) {
                     clearInterval(intervalID)
                     await res.json(projects)
                 }
-            }, 500)
+            }, pollingRate / 2)
         } else {
             await res.json(projects)
         }
     } catch (e) {
         next(e)
     }
+}
+
+// TODO
+async function deleteProject(req, res, next) {
+    const projectName = req.params['project']
+}
+
+// TODO
+async function getRoleBindings(req, res, next) {
+    const projectName = req.params['project']
+}
+
+// TODO
+async function addUserToProject(req, res, next) {
+    const projectName = req.params['project']
+    const {role, username} = req.body
+
+    try {
+        const response = await utils.addRoleBinding(clusterName, projectName, username, role)
+        const intervalID = setInterval(async function() {
+            const postRoleBinding = await utils.addRoleBindingResult(response.operation_id, clusterName, username, role)
+            if (postRoleBinding) {
+                clearInterval(intervalID)
+                res.status(postRoleBinding.code)
+                await res.json(postRoleBinding.body)
+            }
+        }, pollingRate)
+    } catch (e) {
+        next(e)
+    }
+}
+
+// TODO
+async function removeUserFromProject(req, res, next) {
+    const projectName = req.params['project']
+    const username = req.params['username']
 }
 
 module.exports = router

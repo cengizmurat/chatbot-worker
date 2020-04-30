@@ -30,6 +30,15 @@ async function getHeaders() {
     }
 }
 
+async function createProject(clusterName, projectName) {
+    const body = {
+        businessLine: 'GTS',
+        projectSuffix: projectName,
+    }
+    const response = await axiosInstance.post(`/v1/clusters/${clusterName}/projects`, body, await getHeaders())
+    return response.data
+}
+
 async function getProjects(clusterName) {
     const response = await axiosInstance.get(`/v1/clusters/${clusterName}/projects`, await getHeaders())
     const data = response.data
@@ -44,6 +53,24 @@ async function getProjects(clusterName) {
     return projects
 }
 
+async function addRoleBinding(clusterName, projectName, userName, role) {
+    const body = {
+        user: userName,
+        role: role,
+    }
+
+    const response = axiosInstance.put(`/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`, body, await getHeaders())
+    return response.data
+}
+
+async function addRoleBindingResult(operationId, clusterName, username, role) {
+    const result = await operationResult(operationId)
+    const operation = result.operation
+    if (operation && operation.state !== 'running') {
+        return result.details[`post_rolebinding_${clusterName}`][`User-${username}-${role}`]
+    }
+}
+
 async function getRoleBindings(clusterName, project) {
     const response = await axiosInstance.get(`/v1/clusters/${clusterName}/projects/${project}/rolebindings`, await getHeaders())
     return response.data
@@ -55,7 +82,10 @@ async function operationResult(operationId) {
 }
 
 module.exports = {
+    createProject,
     getProjects,
+    addRoleBinding,
+    addRoleBindingResult,
     getRoleBindings,
     operationResult,
 }
