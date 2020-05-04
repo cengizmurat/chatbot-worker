@@ -77,6 +77,15 @@ async function getProjects(clusterName) {
     return projects
 }
 
+async function deleteProject(clusterName, projectName) {
+    const url = `/v1/clusters/${clusterName}/projects/${projectName}`
+    console.log(`[INFO] DELETE ${url}`)
+
+    const headers = await getHeaders()
+    const response = await axiosInstance.delete(url, headers)
+    return response.data
+}
+
 async function addRoleBinding(clusterName, projectName, userName, role) {
     const body = {
         user: userName,
@@ -125,6 +134,7 @@ async function operationResult(operationId) {
 module.exports = {
     createProject,
     getProjects,
+    deleteProject,
     addRoleBinding,
     addRoleBindingResult,
     getRoleBindings,

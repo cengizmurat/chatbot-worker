@@ -117,9 +117,24 @@ async function getProjects(req, res, next) {
     }
 }
 
-// TODO
 async function deleteProject(req, res, next) {
     const projectName = req.params['project']
+
+    try {
+        const response = await utils.deleteProject(clusterName, projectName)
+        const intervalID = setInterval(async function() {
+            const result = await utils.operationResult(response.operation_id)
+            const operation = result.operation
+            if (operation.state !== 'running') {
+                clearInterval(intervalID)
+                const details = result.details[`delete_project_${clusterName}`]
+                res.status(details.code)
+                await res.json(details.body)
+            }
+        }, pollingRate)
+    } catch (e) {
+        next(e)
+    }
 }
 
 // TODO
@@ -127,7 +142,6 @@ async function getRoleBindings(req, res, next) {
     const projectName = req.params['project']
 }
 
-// TODO
 async function addUserToProject(req, res, next) {
     const projectName = req.params['project']
     const {role, username} = req.body
