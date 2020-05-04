@@ -50,7 +50,7 @@ async function createProject(req, res, next) {
                     }
                 }
             }
-        }, pollingRate)
+        }, pollingRate * 2)
     } catch (e) {
         next(e)
     }
