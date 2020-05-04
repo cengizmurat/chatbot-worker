@@ -5,7 +5,9 @@ const axiosInstance = axios.create({
     baseURL: config.OPENSHIFT_URL,
 })
 
-async function getToken() {
+let token
+
+async function renewToken() {
     const body = {
         grant_type: 'client_credentials',
         client_id: config.CLIENT_ID,
@@ -27,9 +29,19 @@ async function getToken() {
 }
 
 async function getHeaders() {
-    const tokenResponse = await getToken()
+    let expired = true
+    if (token && token.expires_at) {
+        expired = Date.now() >= token.expires_at
+    }
+
+    if (expired) {
+        const tokenResponse = await renewToken()
+        tokenResponse.expires_at = Date.now() + parseInt(tokenResponse.expires_in) * 1000
+        token = tokenResponse
+    }
+
     return {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        headers: { Authorization: `Bearer ${token.access_token}` },
     }
 }
 
@@ -42,7 +54,8 @@ async function createProject(clusterName, projectName) {
     const url = `/v1/clusters/${clusterName}/projects`
     console.log(`[INFO] POST ${url}`)
 
-    const response = await axiosInstance.post(url, body, await getHeaders())
+    const headers = await getHeaders()
+    const response = await axiosInstance.post(url, body, headers)
     return response.data
 }
 
@@ -50,7 +63,8 @@ async function getProjects(clusterName) {
     const url = `/v1/clusters/${clusterName}/projects`
     console.log(`[INFO] GET ${url}`)
 
-    const response = await axiosInstance.get(url, await getHeaders())
+    const headers = await getHeaders()
+    const response = await axiosInstance.get(url, headers)
     const data = response.data
     const projects = []
     for (let i in data.projects) {
@@ -72,7 +86,8 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
     const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`
     console.log(`[INFO] PUT ${url}`)
 
-    const response = await axiosInstance.put(url, body, await getHeaders())
+    const headers = await getHeaders()
+    const response = await axiosInstance.put(url, body, headers)
     return response.data
 }
 
@@ -94,7 +109,8 @@ async function getRoleBindings(clusterName, project) {
     const url = `/v1/clusters/${clusterName}/projects/${project}/rolebindings`
     console.log(`[INFO] GET ${url}`)
 
-    const response = await axiosInstance.get(url, await getHeaders())
+    const headers = await getHeaders()
+    const response = await axiosInstance.get(url, headers)
     return response.data
 }
 
