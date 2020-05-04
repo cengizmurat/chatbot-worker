@@ -59,7 +59,7 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
         role: role,
     }
 
-    const response = axiosInstance.put(`/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`, body, await getHeaders())
+    const response = await axiosInstance.put(`/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`, body, await getHeaders())
     return response.data
 }
 
