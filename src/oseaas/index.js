@@ -24,24 +24,29 @@ async function createProject(req, res, next) {
         const projectResponse = await utils.createProject(clusterName, project)
         const intervalID1 = setInterval(async function() {
             const result = await utils.operationResult(projectResponse.operation_id)
-            const operation = result.operation
-            if (operation && operation.state !== 'running') {
-                clearInterval(intervalID1)
-                const postProject = result.details[`post_project_${clusterName}`]
-                const bodyProject = postProject.body
-                if (operation.state === 'success') {
-                    const response = await utils.addRoleBinding(clusterName, bodyProject.metadata.name, username, role)
-                    const intervalID2 = setInterval(async function() {
-                        const postRoleBinding = await utils.addRoleBindingResult(response.operation_id, clusterName, username, role)
-                        if (postRoleBinding) {
-                            clearInterval(intervalID2)
-                            res.status(postRoleBinding.code)
-                            await res.json(postRoleBinding.body)
-                        }
-                    }, pollingRate)
-                } else {
-                    res.status(postProject.code)
-                    await res.json(bodyProject)
+            const details = result.details
+            if (details) {
+                const postProject = details[`post_project_${clusterName}`]
+                if (postProject) {
+                    clearInterval(intervalID1)
+                    const bodyProject = postProject.body
+                    if (postProject.code.toString().startsWith('2')) {
+                        const response = await utils.addRoleBinding(clusterName, bodyProject.metadata.name, username, role)
+                        const intervalID2 = setInterval(async function() {
+                            const postRoleBinding = await utils.addRoleBindingResult(response.operation_id, clusterName, username, role)
+                            if (postRoleBinding) {
+                                clearInterval(intervalID2)
+                                res.status(postRoleBinding.code)
+                                await res.json(postRoleBinding.body)
+                            }
+                        }, pollingRate)
+                    } else {
+                        res.status(postProject.code)
+                        await res.json(bodyProject)
+                    }
+                } else if (result.operation.state !== 'running') {
+                    clearInterval(intervalID1)
+                    throw new Error(result)
                 }
             }
         }, pollingRate)
