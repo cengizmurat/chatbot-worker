@@ -92,17 +92,12 @@ function logResponseBody(req, res) {
 }
 
 async function handleError(err, req, res, next) {
-    console.log('Triggered error :')
     console.error(err)
     const response = err.response
     if (response && response.data) {
-        console.log('Known error')
-        console.log(response)
-        console.log(`Setting error code ${response.data.code}`)
-        res.status(response.data.code)
+        res.status(response.data.code || err.status || 500)
         await res.json(response.data)
     } else {
-        console.log('Unknown error')
         res.status(500)
         await res.json({reason: err.message})
     }
