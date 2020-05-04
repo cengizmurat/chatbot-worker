@@ -21,9 +21,9 @@ async function createProject(req, res, next) {
     const role = 'edit'
 
     try {
-        const project = await utils.createProject(clusterName, project)
+        const projectResponse = await utils.createProject(clusterName, project)
         const intervalID1 = setInterval(async function() {
-            const result = await utils.operationResult(project.operation_id)
+            const result = await utils.operationResult(projectResponse.operation_id)
             const operation = result.operation
             if (operation && operation.state !== 'running') {
                 clearInterval(intervalID1)
