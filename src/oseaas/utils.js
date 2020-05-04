@@ -15,7 +15,10 @@ async function getToken() {
         scope: config.SCOPE,
     }
 
-    const response = await axios.post(`${config.IAMAAS_URL}/v2/oauth2/token`, body, {
+    const url = `${config.IAMAAS_URL}/v2/oauth2/token`
+    console.log(`[INFO] POST ${url}`)
+
+    const response = await axios.post(url, body, {
         headers: {
             'Content-Type': 'application/json',
         }
@@ -35,12 +38,19 @@ async function createProject(clusterName, projectName) {
         businessLine: 'GTS',
         projectSuffix: projectName,
     }
-    const response = await axiosInstance.post(`/v1/clusters/${clusterName}/projects`, body, await getHeaders())
+
+    const url = `/v1/clusters/${clusterName}/projects`
+    console.log(`[INFO] POST ${url}`)
+
+    const response = await axiosInstance.post(url, body, await getHeaders())
     return response.data
 }
 
 async function getProjects(clusterName) {
-    const response = await axiosInstance.get(`/v1/clusters/${clusterName}/projects`, await getHeaders())
+    const url = `/v1/clusters/${clusterName}/projects`
+    console.log(`[INFO] GET ${url}`)
+
+    const response = await axiosInstance.get(url, await getHeaders())
     const data = response.data
     const projects = []
     for (let i in data.projects) {
@@ -59,7 +69,10 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
         role: role,
     }
 
-    const response = await axiosInstance.put(`/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`, body, await getHeaders())
+    const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`
+    console.log(`[INFO] PUT ${url}`)
+
+    const response = await axiosInstance.put(url, body, await getHeaders())
     return response.data
 }
 
@@ -78,12 +91,18 @@ async function addRoleBindingResult(operationId, clusterName, username, role) {
 }
 
 async function getRoleBindings(clusterName, project) {
-    const response = await axiosInstance.get(`/v1/clusters/${clusterName}/projects/${project}/rolebindings`, await getHeaders())
+    const url = `/v1/clusters/${clusterName}/projects/${project}/rolebindings`
+    console.log(`[INFO] GET ${url}`)
+
+    const response = await axiosInstance.get(url, await getHeaders())
     return response.data
 }
 
 async function operationResult(operationId) {
-    const response = await axiosInstance.get(`/v1/operations/${operationId}`)
+    const url = `/v1/operations/${operationId}`
+    console.log(`[INFO] GET ${url}`)
+
+    const response = await axiosInstance.get(url)
     return response.data
 }
 

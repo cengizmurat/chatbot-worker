@@ -8,12 +8,18 @@ const axiosInstance = axios.create({
 })
 
 async function getProject(projectName) {
-    const response = await axiosInstance.get(`/apis/project.openshift.io/v1/projects/${projectName}`)
+    const url = `/apis/project.openshift.io/v1/projects/${projectName}`
+    console.log(`[INFO] GET ${url}`)
+
+    const response = await axiosInstance.get(url)
     return response.data
 }
 
 async function deleteProject(projectName) {
-    const response = await axiosInstance.delete(`/apis/project.openshift.io/v1/projects/${projectName}`)
+    const url = `/apis/project.openshift.io/v1/projects/${projectName}`
+    console.log(`[INFO] DELETE ${url}`)
+
+    const response = await axiosInstance.delete(url)
     return response.data
 }
 
@@ -26,6 +32,7 @@ async function createProjectRequest(projectName) {
             name: projectName,
         }
     }
+    console.log(`[INFO] POST ${url}`)
 
     const response = await axiosInstance.post(url, body)
     return response.data
@@ -45,6 +52,7 @@ async function updateProjectAnnotations(project, username) {
             }
         }
     }
+    console.log(`[INFO] PUT ${url}`)
 
     const response = await axiosInstance.put(url, body)
     return response.data
@@ -63,6 +71,7 @@ async function createRoleBinding(roleName, projectName) {
             name: roleName
         }
     }
+    console.log(`[INFO] POST ${url}`)
 
     const response = await axiosInstance.post(url, body)
     const role = response.data
@@ -73,6 +82,8 @@ async function createRoleBinding(roleName, projectName) {
 
 async function updateRoleBinding(roleBinding, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings/${roleBinding.metadata.name}`
+    console.log(`[INFO] PUT ${url}`)
+
     const response = await axiosInstance.put(url, roleBinding)
     return response.data
 }
@@ -84,6 +95,8 @@ async function getRoleBindings(projectName) {
     } else {
         url = `/apis/authorization.openshift.io/v1/namespaces/${projectName}/rolebindings`
     }
+    console.log(`[INFO] GET ${url}`)
+
     const rolebindings = await axiosInstance.get(url)
     return rolebindings.data
 }
