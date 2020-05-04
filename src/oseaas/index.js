@@ -26,7 +26,7 @@ async function createProject(req, res, next) {
             const result = await utils.operationResult(projectResponse.operation_id)
             const details = result.details
             if (details) {
-                const postProject = details[`post_project_${clusterName}`]
+                const postProject = details[`get_namespace_${clusterName}`]
                 if (postProject) {
                     clearInterval(intervalID1)
                     const bodyProject = postProject.body
