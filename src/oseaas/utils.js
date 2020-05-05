@@ -114,8 +114,8 @@ async function addRoleBindingResult(operationId, clusterName, username, role) {
     }
 }
 
-async function getRoleBindings(clusterName, project) {
-    const url = `/v1/clusters/${clusterName}/projects/${project}/rolebindings`
+async function getRoleBindings(clusterName, projectName) {
+    const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings`
     console.log(`[INFO] GET ${url}`)
 
     const headers = await getHeaders()

@@ -12,7 +12,7 @@ router.post('/projects', createProject)
 router.get('/projects', getProjects)
 router.delete('/projects/:project', deleteProject)
 
-//router.get('/projects/:project/rolebindings', getRoleBindings)
+router.get('/projects/:project/rolebindings', getRoleBindings)
 router.post('/projects/:project/rolebindings', addUserToProject)
 //router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
 
@@ -137,9 +137,24 @@ async function deleteProject(req, res, next) {
     }
 }
 
-// TODO
 async function getRoleBindings(req, res, next) {
     const projectName = req.params['project']
+
+    try {
+        const response = await utils.getRoleBindings(clusterName, projectName)
+        const intervalID = setInterval(async function() {
+            const result = await utils.operationResult(response.operation_id)
+            const operation = result.operation
+            if (operation.state !== 'running') {
+                clearInterval(intervalID)
+                const details = result.details[`get_rolebindings_${clusterName}`]
+                res.status(details.code)
+                await res.json(details.body)
+            }
+        }, pollingRate)
+    } catch (e) {
+        next(e)
+    }
 }
 
 async function addUserToProject(req, res, next) {
