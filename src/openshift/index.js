@@ -10,6 +10,7 @@ router.delete('/projects/:project', deleteProject)
 
 router.get('/projects/:project/rolebindings', getRoleBindings)
 router.post('/projects/:project/rolebindings', addUserToProject)
+router.delete('/projects/:project/rolebindings/:username/:role', removeUserRoleFromProject)
 router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
 
 async function createProject(req, res, next) {
@@ -85,6 +86,26 @@ async function addUserToProject(req, res, next) {
     } else try {
         const response = await utils.addUserToRolebinding(projectName, role, username)
         await res.json(response)
+    } catch (e) {
+        next(e)
+    }
+}
+
+async function removeUserRoleFromProject(req, res, next) {
+    const projectName = req.params['project']
+    const username = req.params['username']
+    const role = req.params['role']
+
+    try {
+        const roleBinding = await utils.getRoleBinding(role, projectName)
+        const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(username) !== -1
+        if (isSubject) {
+            roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== username)
+            roleBinding.roleRef.kind = roleBinding.roleRef.kind || 'ClusterRole'
+            return await utils.updateRoleBinding(roleBinding, projectName)
+        }
+
+        await res.json(roleBinding)
     } catch (e) {
         next(e)
     }

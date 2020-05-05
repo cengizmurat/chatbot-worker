@@ -100,11 +100,11 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
     return response.data
 }
 
-async function addRoleBindingResult(operationId, clusterName, username, role) {
+async function updateRoleBindingResult(operationId, actionName, username, role) {
     const result = await operationResult(operationId)
     const details = result.details
     if (details) {
-        const action = details[`post_rolebinding_${clusterName}`]
+        const action = details[actionName]
         if (action) {
             const openshiftAction = action[`User-${username}-${role}`]
             if (openshiftAction) {
@@ -123,6 +123,24 @@ async function getRoleBindings(clusterName, projectName) {
     return response.data
 }
 
+async function deleteRoleBinding(clusterName, projectName, userName, role) {
+    const body = {
+        user: userName,
+        role: role,
+    }
+
+    const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`
+    console.log(`[INFO] DELETE ${url}`)
+
+    const config = {
+        data: body,
+    }
+    const headers = await getHeaders()
+    Object.assign(config, headers)
+    const response = await axiosInstance.delete(url, config)
+    return response.data
+}
+
 async function operationResult(operationId) {
     const url = `/v1/operations/${operationId}`
     console.log(`[INFO] GET ${url}`)
@@ -136,7 +154,8 @@ module.exports = {
     getProjects,
     deleteProject,
     addRoleBinding,
-    addRoleBindingResult,
+    updateRoleBindingResult,
     getRoleBindings,
+    deleteRoleBinding,
     operationResult,
 }

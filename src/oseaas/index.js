@@ -14,7 +14,8 @@ router.delete('/projects/:project', deleteProject)
 
 router.get('/projects/:project/rolebindings', getRoleBindings)
 router.post('/projects/:project/rolebindings', addUserToProject)
-//router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
+router.delete('/projects/:project/rolebindings/:username/:role', removeUserRoleFromProject)
+router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
 
 async function createProject(req, res, next) {
     const {project, username} = req.body
@@ -34,7 +35,7 @@ async function createProject(req, res, next) {
                         if (postProject.code.toString().startsWith('2')) {
                             const response = await utils.addRoleBinding(clusterName, bodyProject.metadata.name, username, role)
                             const intervalID2 = setInterval(async function() {
-                                const postRoleBinding = await utils.addRoleBindingResult(response.operation_id, clusterName, username, role)
+                                const postRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `post_rolebinding_${clusterName}`, username, role)
                                 if (postRoleBinding) {
                                     clearInterval(intervalID2)
                                     res.status(postRoleBinding.code)
@@ -164,7 +165,7 @@ async function addUserToProject(req, res, next) {
     try {
         const response = await utils.addRoleBinding(clusterName, projectName, username, role)
         const intervalID = setInterval(async function() {
-            const postRoleBinding = await utils.addRoleBindingResult(response.operation_id, clusterName, username, role)
+            const postRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `post_rolebinding_${clusterName}`, username, role)
             if (postRoleBinding) {
                 clearInterval(intervalID)
                 res.status(postRoleBinding.code)
@@ -176,10 +177,57 @@ async function addUserToProject(req, res, next) {
     }
 }
 
-// TODO
+async function removeUserRoleFromProject(req, res, next) {
+    const projectName = req.params['project']
+    const username = req.params['username']
+    const role = req.params['role']
+
+    try {
+        const response = await utils.deleteRoleBinding(clusterName, projectName, username, role)
+        const intervalID = setInterval(async function() {
+            const deleteRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `delete_rolebinding_${clusterName}`, username, role)
+            if (deleteRoleBinding) {
+                clearInterval(intervalID)
+                res.status(deleteRoleBinding.code)
+                await res.json(deleteRoleBinding.body)
+            }
+        }, pollingRate)
+    } catch (e) {
+        next(e)
+    }
+}
+
 async function removeUserFromProject(req, res, next) {
     const projectName = req.params['project']
     const username = req.params['username']
+
+    try {
+        const roles = await utils.getRoleBindings(clusterName, projectName)
+        const intervalID1 = setInterval(async function() {
+            const result = await utils.operationResult(roles.operation_id)
+            const operation = result.operation
+            if (operation.state !== 'running') {
+                clearInterval(intervalID1)
+                const details = result.details[`get_rolebindings_${clusterName}`]
+                const roleBindingList = details.body
+                if (operation.state === 'success') {
+                    for (const roleBinding of roleBindingList.items) {
+                        const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(username) !== -1
+                        if (isSubject) {
+                            roleBinding.userNames = roleBinding.userNames.filter(user => user !== username)
+                            roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== username)
+                            await utils.deleteRoleBinding(clusterName, projectName, username, roleBinding.metadata.name)
+                        }
+                    }
+                } else {
+                    res.status(details.code)
+                }
+                await res.json(roleBindingList)
+            }
+        }, pollingRate)
+    } catch (e) {
+        next(e)
+    }
 }
 
 module.exports = router

@@ -132,6 +132,7 @@ module.exports = {
     createProjectRequest,
     updateProjectAnnotations,
     updateRoleBinding,
+    getRoleBinding,
     getRoleBindings,
     addUserToRolebinding,
 }
