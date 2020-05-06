@@ -23,6 +23,7 @@ async function init() {
 const router = express.Router()
 router.get('/', homeUrl)
 
+router.use('/github', require('./github'))
 if (config.OPENSHIFT_TOKEN !== undefined) {
     router.use('/openshift', require('./openshift'))
 } else if (config.IAMAAS_URL !== undefined) {
@@ -95,7 +96,7 @@ async function handleError(err, req, res, next) {
     console.error(err)
     const response = err.response
     if (response && response.data) {
-        res.status(response.data.code || err.status || 500)
+        res.status(response.data.code || response.status || err.status || 500)
         await res.json(response.data)
     } else {
         res.status(500)

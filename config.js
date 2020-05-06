@@ -3,7 +3,7 @@ const fs = require('fs')
 const configFile = 'config.json'
 
 let config = {}
-const variables = ['OPENSHIFT_URL']
+const variables = ['OPENSHIFT_URL', 'GITHUB_URL', 'GITHUB_TOKEN']
 // Optional variables and their default values
 const optionalVariables = {
   'PORT': '3000',
