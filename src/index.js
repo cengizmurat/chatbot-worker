@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 
 const config = require('../config.js')
+const logger = require('./logger')
 
 const app = express()
 
@@ -14,20 +15,28 @@ async function init() {
     app.use(cors)
     app.use(preprocessRequest)
     app.use(logRequest)
-    app.use('/', router)
+    app.use('/', createRouter())
     app.use(handleError)
 
     return app
 }
 
-const router = express.Router()
-router.get('/', homeUrl)
+function createRouter() {
+    try {
+        const router = express.Router()
+        router.get('/', homeUrl)
 
-router.use('/github', require('./github'))
-if (config.OPENSHIFT_TOKEN !== undefined) {
-    router.use('/openshift', require('./openshift'))
-} else if (config.IAMAAS_URL !== undefined) {
-    router.use('/openshift', require('./oseaas'))
+        router.use('/github', require('./github'))
+        if (config.OPENSHIFT_TOKEN !== undefined) {
+            router.use('/openshift', require('./openshift'))
+        } else if (config.IAMAAS_URL !== undefined) {
+            router.use('/openshift', require('./oseaas'))
+        }
+
+        return router
+    } catch (e) {
+        logger.log(e, 'FATAL')
+    }
 }
 
 async function homeUrl(req, res, next) {
@@ -57,15 +66,15 @@ function logRequest(req, res, next) {
 }
 
 function logRequestParams(req) {
-    console.log('Request')
-    console.log({
+    const obj = {
         headers: req.headers,
         url: req.url,
         method: req.method,
         params: req.params,
         query: req.query,
         body: req.body,
-    })
+    }
+    logger.log(['Request', obj], 'TRACE')
 }
 
 function logResponseBody(req, res) {
@@ -85,15 +94,14 @@ function logResponseBody(req, res) {
             chunks.push(chunk)
 
         const body = Buffer.concat(chunks).toString('utf8')
-        console.log(`Response ${req.originalUrl}`)
-        console.log(body)
+        logger.log([`Response ${req.originalUrl}`, JSON.parse(body)], 'TRACE')
 
         oldEnd.apply(res, arguments)
     }
 }
 
 async function handleError(err, req, res, next) {
-    console.error(err)
+    logger.log(err, 'ERROR')
     const response = err.response
     if (response && response.data) {
         res.status(response.data.code || response.status || err.status || 500)

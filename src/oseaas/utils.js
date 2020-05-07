@@ -1,5 +1,6 @@
 const axios = require('axios')
 const config = require('../../config.js')
+const logger = require('../logger')
 
 const axiosInstance = axios.create({
     baseURL: config.OPENSHIFT_URL,
@@ -18,7 +19,7 @@ async function renewToken() {
     }
 
     const url = `${config.IAMAAS_URL}/v2/oauth2/token`
-    console.log(`[INFO] POST ${url}`)
+    logger.log(`POST ${url}`, 'TRACE')
 
     const response = await axios.post(url, body, {
         headers: {
@@ -52,7 +53,7 @@ async function createProject(clusterName, projectName) {
     }
 
     const url = `/v1/clusters/${clusterName}/projects`
-    console.log(`[INFO] POST ${url}`)
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const headers = await getHeaders()
     const response = await axiosInstance.post(url, body, headers)
@@ -61,7 +62,7 @@ async function createProject(clusterName, projectName) {
 
 async function getProjects(clusterName) {
     const url = `/v1/clusters/${clusterName}/projects`
-    console.log(`[INFO] GET ${url}`)
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const headers = await getHeaders()
     const response = await axiosInstance.get(url, headers)
@@ -79,7 +80,7 @@ async function getProjects(clusterName) {
 
 async function deleteProject(clusterName, projectName) {
     const url = `/v1/clusters/${clusterName}/projects/${projectName}`
-    console.log(`[INFO] DELETE ${url}`)
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const headers = await getHeaders()
     const response = await axiosInstance.delete(url, headers)
@@ -93,7 +94,7 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
     }
 
     const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`
-    console.log(`[INFO] PUT ${url}`)
+    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const headers = await getHeaders()
     const response = await axiosInstance.put(url, body, headers)
@@ -116,7 +117,7 @@ async function updateRoleBindingResult(operationId, actionName, username, role) 
 
 async function getRoleBindings(clusterName, projectName) {
     const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings`
-    console.log(`[INFO] GET ${url}`)
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const headers = await getHeaders()
     const response = await axiosInstance.get(url, headers)
@@ -130,7 +131,7 @@ async function deleteRoleBinding(clusterName, projectName, userName, role) {
     }
 
     const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`
-    console.log(`[INFO] DELETE ${url}`)
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const config = {
         data: body,
@@ -143,7 +144,7 @@ async function deleteRoleBinding(clusterName, projectName, userName, role) {
 
 async function operationResult(operationId) {
     const url = `/v1/operations/${operationId}`
-    console.log(`[INFO] GET ${url}`)
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.get(url)
     return response.data

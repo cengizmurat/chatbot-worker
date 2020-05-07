@@ -4,8 +4,9 @@ const api = require('./src')
 api.init().then(app => {
     const port = config.PORT
     app.listen(port, () => {
-        console.log(`Listening on port ${port}`)
+        console.log(`[INFO] Listening on port ${port}`)
     })
 }).catch(e => {
+    console.error(`[FATAL] Error starting server`)
     console.error(e)
 })

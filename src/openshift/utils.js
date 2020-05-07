@@ -1,5 +1,6 @@
 const axios = require('axios')
 const config = require('../../config.js')
+const logger = require('../logger')
 
 const token = config.OPENSHIFT_TOKEN
 const axiosInstance = axios.create({
@@ -9,7 +10,7 @@ const axiosInstance = axios.create({
 
 async function getProject(projectName) {
     const url = `/apis/project.openshift.io/v1/projects/${projectName}`
-    console.log(`[INFO] GET ${url}`)
+    logger.log(`GET ${url}`, 'TRACE')
 
     const response = await axiosInstance.get(url)
     return response.data
@@ -17,7 +18,7 @@ async function getProject(projectName) {
 
 async function deleteProject(projectName) {
     const url = `/apis/project.openshift.io/v1/projects/${projectName}`
-    console.log(`[INFO] DELETE ${url}`)
+    logger.log(`DELETE ${url}`, 'TRACE')
 
     const response = await axiosInstance.delete(url)
     return response.data
@@ -32,7 +33,7 @@ async function createProjectRequest(projectName) {
             name: projectName,
         }
     }
-    console.log(`[INFO] POST ${url}`)
+    logger.log(`POST ${url}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
     return response.data
@@ -52,7 +53,7 @@ async function updateProjectAnnotations(project, username) {
             }
         }
     }
-    console.log(`[INFO] PUT ${url}`)
+    logger.log(`PUT ${url}`, 'TRACE')
 
     const response = await axiosInstance.put(url, body)
     return response.data
@@ -71,7 +72,7 @@ async function createRoleBinding(roleName, projectName) {
             name: roleName
         }
     }
-    console.log(`[INFO] POST ${url}`)
+    logger.log(`POST ${url}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
     const role = response.data
@@ -82,7 +83,7 @@ async function createRoleBinding(roleName, projectName) {
 
 async function updateRoleBinding(roleBinding, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings/${roleBinding.metadata.name}`
-    console.log(`[INFO] PUT ${url}`)
+    logger.log(`PUT ${url}`, 'TRACE')
 
     const response = await axiosInstance.put(url, roleBinding)
     return response.data
@@ -95,7 +96,7 @@ async function getRoleBindings(projectName) {
     } else {
         url = `/apis/authorization.openshift.io/v1/namespaces/${projectName}/rolebindings`
     }
-    console.log(`[INFO] GET ${url}`)
+    logger.log(`GET ${url}`, 'TRACE')
 
     const rolebindings = await axiosInstance.get(url)
     return rolebindings.data
