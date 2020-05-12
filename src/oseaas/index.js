@@ -8,6 +8,8 @@ const clusterName = config.CLUSTER_NAME
 
 const pollingRate = 1000 // in milliseconds
 
+router.get('/operations/:operationId', getOperation)
+
 router.post('/projects', createProject)
 router.get('/projects', getProjects)
 router.delete('/projects/:project', deleteProject)
@@ -17,16 +19,45 @@ router.post('/projects/:project/rolebindings', addUserToProject)
 router.delete('/projects/:project/rolebindings/:username/:role', removeUserRoleFromProject)
 router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
 
+const onGoingOperations = {}
+
+async function getOperation(req, res, next) {
+    try {
+        const operationId = req.query['operationId']
+        let operation = onGoingOperations[operationId]
+        if (operation !== undefined) {
+            if (operation === 'running') {
+                operation = await utils.operationResult(operationId)
+                await res.json(operation)
+            } else if (operation.code && operation.body) {
+                res.status(operation.code)
+                await res.json(operation.body)
+            } else {
+                req.query['operationId'] = operation
+                await getOperation(req, res, next)
+            }
+        } else {
+            res.status(404)
+            await res.json({message: 'Operation not found'})
+        }
+    } catch (e) {
+        next(e)
+    }
+}
+
 async function createProject(req, res, next) {
     const {project, username} = req.body
     const role = 'edit'
 
     try {
         const projectResponse = await utils.createProject(clusterName, project)
+        await res.json(projectResponse) // return response to user, but continue actions
+
         const intervalID1 = setInterval(async function() {
             const result = await utils.operationResult(projectResponse.operation_id)
             const operation = result.operation
             if (operation) {
+                onGoingOperations[projectResponse.operation_id] = 'running'
                 if (operation.state !== 'running') {
                     clearInterval(intervalID1)
                     const postProject = result.details[`post_project_${clusterName}`]
@@ -34,17 +65,23 @@ async function createProject(req, res, next) {
                     if (operation.state === 'success') {
                         if (postProject.code.toString().startsWith('2')) {
                             const response = await utils.addRoleBinding(clusterName, bodyProject.metadata.name, username, role)
+                            onGoingOperations[response.operation_id] = 'running'
+                            onGoingOperations[projectResponse.operation_id] = response.operation_id
                             const intervalID2 = setInterval(async function() {
                                 const postRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `post_rolebinding_${clusterName}`, username, role)
                                 if (postRoleBinding) {
                                     clearInterval(intervalID2)
-                                    res.status(postRoleBinding.code)
-                                    await res.json(postRoleBinding.body)
+                                    onGoingOperations[response.operation_id] = {
+                                        code: postRoleBinding.code,
+                                        body: postRoleBinding.body,
+                                    }
                                 }
                             }, pollingRate)
                         } else {
-                            res.status(postProject.code)
-                            await res.json(bodyProject)
+                            onGoingOperations[projectResponse.operation_id] = {
+                                code: postProject.code,
+                                body: bodyProject,
+                            }
                         }
                     } else {
                         throw new Error(result)
