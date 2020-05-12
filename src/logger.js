@@ -17,7 +17,7 @@ function log(message, level = infoLevel) {
             message = message.join('\n')
         }
         if (!(typeof message === 'string' || message instanceof String)) {
-            message = JSON.stringify(message, null, 2)
+            message = JSON.stringify(message)
         }
         message = `[${level}] ${message}`
 

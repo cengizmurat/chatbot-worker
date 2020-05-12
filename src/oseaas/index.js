@@ -2,6 +2,7 @@ const express = require('express')
 
 const config = require('../../config.js')
 const utils = require('./utils')
+const logger = require('../logger')
 
 const router = express.Router()
 const clusterName = config.CLUSTER_NAME
@@ -48,6 +49,7 @@ async function getOperation(req, res, next) {
 async function createProject(req, res, next) {
     const {project, username} = req.body
     const role = 'edit'
+    logger.log(`Project creation "${project}" requested by ${username}`, 'INFO')
 
     try {
         const projectResponse = await utils.createProject(clusterName, project)
@@ -64,12 +66,19 @@ async function createProject(req, res, next) {
                     const bodyProject = postProject.body
                     if (operation.state === 'success') {
                         if (postProject.code.toString().startsWith('2')) {
+                            logger.log(`Created project "${bodyProject.metadata.name}" in cluster ${clusterName}`, 'INFO')
                             const response = await utils.addRoleBinding(clusterName, bodyProject.metadata.name, username, role)
                             onGoingOperations[response.operation_id] = 'running'
                             onGoingOperations[projectResponse.operation_id] = response.operation_id
                             const intervalID2 = setInterval(async function() {
                                 const postRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `post_rolebinding_${clusterName}`, username, role)
                                 if (postRoleBinding) {
+                                    if (postRoleBinding.code.toString().startsWith('2')) {
+                                        logger.log(`Added role ${role} to ${username} in project "${bodyProject.metadata.name}"`, 'INFO')
+                                    } else {
+                                        logger.log(`Failed adding role ${role} to ${username} in project "${bodyProject.metadata.name}"`, 'ERROR')
+                                        logger.log(postRoleBinding, 'TRACE')
+                                    }
                                     clearInterval(intervalID2)
                                     onGoingOperations[response.operation_id] = {
                                         code: postRoleBinding.code,
@@ -78,6 +87,8 @@ async function createProject(req, res, next) {
                                 }
                             }, pollingRate)
                         } else {
+                            logger.log(`Failed creating project "${bodyProject.metadata.name}" in cluster ${clusterName}`, 'ERROR')
+                            logger.log(postProject, 'TRACE')
                             onGoingOperations[projectResponse.operation_id] = {
                                 code: postProject.code,
                                 body: bodyProject,
@@ -96,6 +107,7 @@ async function createProject(req, res, next) {
 
 async function getProjects(req, res, next) {
     const username = req.query['username']
+    logger.log(`Searching projects of ${username}...`, 'INFO')
 
     try {
         const projects = []
@@ -157,6 +169,7 @@ async function getProjects(req, res, next) {
 
 async function deleteProject(req, res, next) {
     const projectName = req.params['project']
+    logger.log(`Project deletion "${projectName}" requested`, 'INFO')
 
     try {
         const response = await utils.deleteProject(clusterName, projectName)
@@ -166,6 +179,12 @@ async function deleteProject(req, res, next) {
             if (operation.state !== 'running') {
                 clearInterval(intervalID)
                 const details = result.details[`delete_project_${clusterName}`]
+                if (details.code.toString().startsWith('2')) {
+                    logger.log(`Deleted project "${projectName}"`, 'INFO')
+                } else {
+                    logger.log(`Error deleting project "${projectName}"`, 'ERROR')
+                    logger.log(details, 'TRACE')
+                }
                 res.status(details.code)
                 await res.json(details.body)
             }
@@ -177,6 +196,7 @@ async function deleteProject(req, res, next) {
 
 async function getRoleBindings(req, res, next) {
     const projectName = req.params['project']
+    logger.log(`Getting RoleBindings of project "${projectName}"...`, 'INFO')
 
     try {
         const response = await utils.getRoleBindings(clusterName, projectName)
@@ -186,6 +206,12 @@ async function getRoleBindings(req, res, next) {
             if (operation.state !== 'running') {
                 clearInterval(intervalID)
                 const details = result.details[`get_rolebindings_${clusterName}`]
+                if (details.code.toString().startsWith('2')) {
+                    logger.log(`Found RoleBindings of project "${projectName}"`, 'INFO')
+                } else {
+                    logger.log(`Error when getting RoleBindings of project "${projectName}"`, 'ERROR')
+                    logger.log(details, 'TRACE')
+                }
                 res.status(details.code)
                 await res.json(details.body)
             }
@@ -205,6 +231,12 @@ async function addUserToProject(req, res, next) {
             const postRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `post_rolebinding_${clusterName}`, username, role)
             if (postRoleBinding) {
                 clearInterval(intervalID)
+                if (postRoleBinding.code.toString().startsWith('2')) {
+                    logger.log(`Added role ${role} to user ${username} in project "${projectName}"`, 'INFO')
+                } else {
+                    logger.log(`Error when adding role ${role} to user ${username} in project "${projectName}"`, 'ERROR')
+                    logger.log(postRoleBinding, 'TRACE')
+                }
                 res.status(postRoleBinding.code)
                 await res.json(postRoleBinding.body)
             }
@@ -225,6 +257,12 @@ async function removeUserRoleFromProject(req, res, next) {
             const deleteRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `delete_rolebinding_${clusterName}`, username, role)
             if (deleteRoleBinding) {
                 clearInterval(intervalID)
+                if (deleteRoleBinding.code.toString().startsWith('2')) {
+                    logger.log(`Removed role ${role} from user ${username} in project "${projectName}"`, 'INFO')
+                } else {
+                    logger.log(`Error when removing role ${role} from user ${username} in project "${projectName}"`, 'ERROR')
+                    logger.log(deleteRoleBinding, 'TRACE')
+                }
                 res.status(deleteRoleBinding.code)
                 await res.json(deleteRoleBinding.body)
             }
@@ -237,6 +275,7 @@ async function removeUserRoleFromProject(req, res, next) {
 async function removeUserFromProject(req, res, next) {
     const projectName = req.params['project']
     const username = req.params['username']
+    logger.log(`Removing all roles from user ${username} in project "${projectName}"...`, 'INFO')
 
     try {
         const roles = await utils.getRoleBindings(clusterName, projectName)
@@ -258,6 +297,8 @@ async function removeUserFromProject(req, res, next) {
                     }
                 } else {
                     res.status(details.code)
+                    logger.log(`Error when removing all roles from user ${username} in project "${projectName}"`, 'ERROR')
+                    logger.log(details, 'TRACE')
                 }
                 await res.json(roleBindingList)
             }

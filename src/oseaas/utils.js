@@ -57,6 +57,7 @@ async function createProject(clusterName, projectName) {
 
     const headers = await getHeaders()
     const response = await axiosInstance.post(url, body, headers)
+    logger.log(`Creating project "${projectName}" in cluster ${clusterName}...`, 'INFO')
     return response.data
 }
 
@@ -84,6 +85,7 @@ async function deleteProject(clusterName, projectName) {
 
     const headers = await getHeaders()
     const response = await axiosInstance.delete(url, headers)
+    logger.log(`Deleting project "${projectName}" in cluster ${clusterName}...`, 'INFO')
     return response.data
 }
 
@@ -98,6 +100,7 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
 
     const headers = await getHeaders()
     const response = await axiosInstance.put(url, body, headers)
+    logger.log(`Adding ${role} role to ${userName} in project "${projectName}"...`, 'INFO')
     return response.data
 }
 
@@ -139,6 +142,7 @@ async function deleteRoleBinding(clusterName, projectName, userName, role) {
     const headers = await getHeaders()
     Object.assign(config, headers)
     const response = await axiosInstance.delete(url, config)
+    logger.log(`Removing ${role} role from ${userName} in project "${projectName}"...`, 'INFO')
     return response.data
 }
 
