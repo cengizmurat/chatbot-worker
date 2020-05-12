@@ -34,7 +34,7 @@ async function getOperation(req, res, next) {
                 res.status(operation.code)
                 await res.json(operation.body)
             } else {
-                req.query['operationId'] = operation
+                req.params['operationId'] = operation
                 await getOperation(req, res, next)
             }
         } else {
