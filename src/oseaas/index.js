@@ -24,9 +24,7 @@ const onGoingOperations = {}
 
 async function getOperation(req, res, next) {
     try {
-        const operationId = req.query['operationId']
-        console.log('Operation ID : ' + operationId)
-        console.log(onGoingOperations)
+        const operationId = req.params['operationId']
         let operation = onGoingOperations[operationId]
         if (operation !== undefined) {
             if (operation === 'running') {
