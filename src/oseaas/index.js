@@ -25,21 +25,27 @@ const onGoingOperations = {}
 async function getOperation(req, res, next) {
     try {
         const operationId = req.params['operationId']
+        console.log('onGoingOperations :')
         console.log(onGoingOperations)
-        console.log(operationId)
+        console.log(`operationId : ${operationId}`)
         let operation = onGoingOperations[operationId]
-        if (operation !== undefined) {
+        if (operation) {
+            console.log('Operation found')
             if (operation.operation_id) {
+                console.log('CASE 1')
                 operation = await utils.operationResult(operationId)
                 await res.json(operation)
             } else if (operation.code && operation.body) {
+                console.log('CASE 2')
                 res.status(operation.code)
                 await res.json(operation.body)
             } else {
+                console.log('CASE ELSE')
                 req.params['operationId'] = operation
                 await getOperation(req, res, next)
             }
         } else {
+            console.log('NO OPERATION FOUND')
             res.status(404)
             await res.json({message: 'Operation not found'})
         }
