@@ -31,12 +31,14 @@ async function getOperation(req, res, next) {
         let operation = onGoingOperations[operationId]
         if (operation) {
             console.log('Operation found')
-            if (operation.operation_id) {
+            if (operation.operation) {
                 console.log('CASE 1')
                 operation = await utils.operationResult(operationId)
+                onGoingOperations[operationId] = operation
                 await res.json(operation)
             } else if (operation.code && operation.body) {
                 console.log('CASE 2')
+                delete onGoingOperations[operationId]
                 res.status(operation.code)
                 await res.json(operation.body)
             } else {
