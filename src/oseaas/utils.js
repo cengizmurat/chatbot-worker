@@ -104,9 +104,8 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
     return response.data
 }
 
-async function updateRoleBindingResult(operationId, actionName, username, role) {
-    const result = await operationResult(operationId)
-    const details = result.details
+async function updateRoleBindingResult(operation, actionName, username, role) {
+    const details = operation.details
     if (details) {
         const action = details[actionName]
         if (action) {

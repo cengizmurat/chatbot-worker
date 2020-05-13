@@ -27,7 +27,7 @@ async function getOperation(req, res, next) {
         const operationId = req.params['operationId']
         let operation = onGoingOperations[operationId]
         if (operation !== undefined) {
-            if (operation === 'running') {
+            if (operation.operation_id) {
                 operation = await utils.operationResult(operationId)
                 await res.json(operation)
             } else if (operation.code && operation.body) {
@@ -53,13 +53,16 @@ async function createProject(req, res, next) {
 
     try {
         const projectResponse = await utils.createProject(clusterName, project)
-        await res.json(projectResponse) // return response to user, but continue actions
 
         const intervalID1 = setInterval(async function() {
             const result = await utils.operationResult(projectResponse.operation_id)
+            if (onGoingOperations[projectResponse.operation_id] === undefined) {
+                onGoingOperations[projectResponse.operation_id] = result
+                await res.json(projectResponse) // return response to user, but continue actions
+            }
+            onGoingOperations[projectResponse.operation_id] = result
             const operation = result.operation
             if (operation) {
-                onGoingOperations[projectResponse.operation_id] = 'running'
                 if (operation.state !== 'running') {
                     clearInterval(intervalID1)
                     const postProject = result.details[`post_project_${clusterName}`]
@@ -68,10 +71,11 @@ async function createProject(req, res, next) {
                         if (postProject.code.toString().startsWith('2')) {
                             logger.log(`Created project "${bodyProject.metadata.name}" in cluster ${clusterName}`, 'INFO')
                             const response = await utils.addRoleBinding(clusterName, bodyProject.metadata.name, username, role)
-                            onGoingOperations[response.operation_id] = 'running'
-                            onGoingOperations[projectResponse.operation_id] = response.operation_id
                             const intervalID2 = setInterval(async function() {
-                                const postRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `post_rolebinding_${clusterName}`, username, role)
+                                const operation = await utils.operationResult(response.operation_id)
+                                onGoingOperations[response.operation_id] = operation
+                                onGoingOperations[projectResponse.operation_id] = response.operation_id
+                                const postRoleBinding = await utils.updateRoleBindingResult(operation, `post_rolebinding_${clusterName}`, username, role)
                                 if (postRoleBinding) {
                                     if (postRoleBinding.code.toString().startsWith('2')) {
                                         logger.log(`Added role ${role} to ${username} in project "${bodyProject.metadata.name}"`, 'INFO')
@@ -228,7 +232,8 @@ async function addUserToProject(req, res, next) {
     try {
         const response = await utils.addRoleBinding(clusterName, projectName, username, role)
         const intervalID = setInterval(async function() {
-            const postRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `post_rolebinding_${clusterName}`, username, role)
+            const operation = await utils.operationResult(response.operation_id)
+            const postRoleBinding = await utils.updateRoleBindingResult(operation, `post_rolebinding_${clusterName}`, username, role)
             if (postRoleBinding) {
                 clearInterval(intervalID)
                 if (postRoleBinding.code.toString().startsWith('2')) {
@@ -254,7 +259,8 @@ async function removeUserRoleFromProject(req, res, next) {
     try {
         const response = await utils.deleteRoleBinding(clusterName, projectName, username, role)
         const intervalID = setInterval(async function() {
-            const deleteRoleBinding = await utils.updateRoleBindingResult(response.operation_id, `delete_rolebinding_${clusterName}`, username, role)
+            const operation = await utils.operationResult(response.operation_id)
+            const deleteRoleBinding = await utils.updateRoleBindingResult(operation, `delete_rolebinding_${clusterName}`, username, role)
             if (deleteRoleBinding) {
                 clearInterval(intervalID)
                 if (deleteRoleBinding.code.toString().startsWith('2')) {
