@@ -13,7 +13,7 @@ function log(message, level = infoLevel) {
     const intLevel = logLevels.indexOf(level)
     if (intLevel >= logLevel) {
         if (Array.isArray(message)) {
-            message = message.map(m => typeof m === 'string' || m instanceof String ? m : JSON.stringify(m, null, 2))
+            message = message.map(m => typeof m === 'string' || m instanceof String ? m : JSON.stringify(m))
             message = message.join('\n')
         }
         if (!(typeof message === 'string' || message instanceof String)) {
