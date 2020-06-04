@@ -8,6 +8,8 @@ router.post('/projects', createProject)
 router.get('/projects', getProjects)
 router.delete('/projects/:project', deleteProject)
 
+router.get('/projects/:project/resourcequotas', getResourceQuotas)
+
 router.get('/projects/:project/rolebindings', getRoleBindings)
 router.post('/projects/:project/rolebindings', addUserToProject)
 router.delete('/projects/:project/rolebindings/:username/:role', removeUserRoleFromProject)
@@ -61,6 +63,15 @@ async function deleteProject(req, res, next) {
     const projectName = req.params['project']
     try {
         await res.json(await utils.deleteProject(projectName))
+    } catch (e) {
+        next(e)
+    }
+}
+
+async function getResourceQuotas(req, res, next) {
+    const projectName = req.params['project']
+    try {
+        await res.json(await utils.getResourceQuotas(projectName))
     } catch (e) {
         next(e)
     }

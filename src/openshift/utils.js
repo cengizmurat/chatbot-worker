@@ -59,6 +59,14 @@ async function updateProjectAnnotations(project, username) {
     return response.data
 }
 
+async function getResourceQuotas(projectName) {
+    const url = `/api/v1/namespaces/${projectName}/resourcequotas`
+    logger.log(`GET ${url}`, 'TRACE')
+
+    const response = await axiosInstance.get(url)
+    return response.data
+}
+
 async function createRoleBinding(roleName, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings`
     const body = {
@@ -132,6 +140,7 @@ module.exports = {
     deleteProject,
     createProjectRequest,
     updateProjectAnnotations,
+    getResourceQuotas,
     updateRoleBinding,
     getRoleBinding,
     getRoleBindings,
