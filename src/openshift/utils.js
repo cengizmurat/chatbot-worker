@@ -67,6 +67,35 @@ async function getResourceQuotas(projectName) {
     return response.data
 }
 
+async function createResourceQuotas(projectName, quotaSpecs) {
+    const url = `/api/v1/namespaces/${projectName}/resourcequotas`
+    quotaSpecs.kind = "ResourceQuota"
+    quotaSpecs.apiVersion = "v1"
+
+    logger.log(`POST ${url}`, 'TRACE')
+
+    const response = await axiosInstance.post(url, quotaSpecs)
+    return response.data
+}
+
+async function updateResourceQuotas(projectName, quotaSpecs) {
+    const url = `/api/v1/namespaces/${projectName}/resourcequotas/${quotaSpecs.metadata.name}`
+    quotaSpecs.kind = "ResourceQuota"
+    quotaSpecs.apiVersion = "v1"
+    logger.log(`PUT ${url}`, 'TRACE')
+
+    const response = await axiosInstance.put(url, quotaSpecs)
+    return response.data
+}
+
+async function deleteResourceQuotas(projectName, quotaName) {
+    const url = `/api/v1/namespaces/${projectName}/resourcequotas/${quotaName}`
+    logger.log(`DELETE ${url}`, 'TRACE')
+
+    const response = await axiosInstance.delete(url)
+    return response.data
+}
+
 async function createRoleBinding(roleName, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings`
     const body = {
@@ -141,6 +170,9 @@ module.exports = {
     createProjectRequest,
     updateProjectAnnotations,
     getResourceQuotas,
+    createResourceQuotas,
+    updateResourceQuotas,
+    deleteResourceQuotas,
     updateRoleBinding,
     getRoleBinding,
     getRoleBindings,

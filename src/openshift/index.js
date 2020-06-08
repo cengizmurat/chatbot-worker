@@ -9,6 +9,8 @@ router.get('/projects', getProjects)
 router.delete('/projects/:project', deleteProject)
 
 router.get('/projects/:project/resourcequotas', getResourceQuotas)
+router.post('/projects/:project/resourcequotas', createResourceQuotas)
+router.put('/projects/:project/resourcequotas', updateResourceQuotas)
 
 router.get('/projects/:project/rolebindings', getRoleBindings)
 router.post('/projects/:project/rolebindings', addUserToProject)
@@ -72,6 +74,115 @@ async function getResourceQuotas(req, res, next) {
     const projectName = req.params['project']
     try {
         await res.json(await utils.getResourceQuotas(projectName))
+    } catch (e) {
+        next(e)
+    }
+}
+
+function getQuotaSpecs(quotaSize) {
+    const scopes = ['NotTerminating', 'Terminating']
+    const envPrefix = `QUOTA_${quotaSize.toUpperCase()}_`
+
+    const specs = []
+    for (const scope of scopes) {
+        const metadata = {}
+        const spec = {}
+        for (const [key, value] of Object.entries(process.env)) {
+            const prefixIndex = key.toUpperCase().indexOf(envPrefix)
+            if (prefixIndex === 0) {
+                const scopeIndex = key.indexOf(scope.toUpperCase(), envPrefix.length)
+                if (scopeIndex === envPrefix.length + 1) {
+                    const param = key.substring(scopeIndex + scope.length + 1)
+                    if (param === 'NAME') {
+                        metadata.name = value
+                    } else {
+                        spec[param.toLowerCase().replace(/_/g, '.')] = value
+                    }
+                }
+            }
+        }
+
+        if (metadata.name) {
+            metadata.annotations = {
+                'quota-size': quotaSize
+            }
+            specs.push({
+                metadata: metadata,
+                spec: {
+                    hard: spec,
+                    scopes: [ scope ]
+                }
+            })
+        }
+    }
+
+    return specs
+}
+
+async function createResourceQuotas(req, res, next) {
+    const { project, size } = req.body
+
+    try {
+        const specs = getQuotaSpecs(size)
+        const results = []
+        for (const spec of specs) {
+            results.push(await utils.createResourceQuotas(project, spec))
+        }
+        await res.json(results)
+    } catch (e) {
+        next(e)
+    }
+}
+
+async function keepQuotaSize(projectName, size) {
+    const existingQuotas = await utils.getResourceQuotas(projectName)
+    for (const quota of existingQuotas.items) {
+        const metadata = quota.metadata
+        if (metadata) {
+            const annotations = metadata.annotations
+            if (annotations) {
+                const quotaSize = annotations['quota-size']
+                if (quotaSize !== size) {
+                    await utils.deleteResourceQuotas(projectName, metadata.name)
+                }
+            }
+        }
+    }
+}
+
+async function updateExistingQuotas(projectName, size) {
+    const specs = getQuotaSpecs(size)
+    const existingQuotas = await utils.getResourceQuotas(projectName)
+
+    const results = []
+    for (const spec of specs) {
+        let specFound = false
+        for (const quota of existingQuotas.items) {
+            const metadata = quota.metadata
+            if (metadata) {
+                if (metadata.name === spec.metadata.name) {
+                    results.push(await utils.updateResourceQuotas(projectName, spec))
+                    specFound = true
+                    break
+                }
+            }
+        }
+        if (!specFound) {
+            results.push(await utils.createResourceQuotas(projectName, spec))
+        }
+    }
+
+    return results
+}
+
+async function updateResourceQuotas(req, res, next) {
+    const projectName = req.params['project']
+    const { size } = req.body
+
+    try {
+        const updatedQuotas = await updateExistingQuotas(projectName, size)
+        await keepQuotaSize(projectName, size)
+        await res.json(updatedQuotas)
     } catch (e) {
         next(e)
     }
