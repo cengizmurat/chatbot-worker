@@ -96,6 +96,104 @@ async function deleteResourceQuotas(projectName, quotaName) {
     return response.data
 }
 
+function getQuotaSpecs(quotaSize) {
+    const scopes = ['NotTerminating', 'Terminating']
+    const envPrefix = `QUOTA_${quotaSize.toUpperCase()}_`
+
+    const specs = []
+    for (const scope of scopes) {
+        const metadata = {}
+        const spec = {}
+        for (const [key, value] of Object.entries(process.env)) {
+            const prefixIndex = key.toUpperCase().indexOf(envPrefix)
+            if (prefixIndex === 0) {
+                const scopeIndex = key.indexOf(scope.toUpperCase(), envPrefix.length)
+                if (scopeIndex === envPrefix.length + 1) {
+                    const param = key.substring(scopeIndex + scope.length + 1)
+                    if (param === 'NAME') {
+                        metadata.name = value
+                    } else {
+                        spec[param.toLowerCase().replace(/_/g, '.')] = value
+                    }
+                }
+            }
+        }
+
+        if (metadata.name) {
+            metadata.annotations = {
+                'quota-size': quotaSize
+            }
+            specs.push({
+                metadata: metadata,
+                spec: {
+                    hard: spec,
+                    scopes: [ scope ]
+                }
+            })
+        }
+    }
+
+    return specs
+}
+
+async function keepQuotaSize(projectName, size) {
+    const existingQuotas = await getResourceQuotas(projectName)
+    for (const quota of existingQuotas.items) {
+        const metadata = quota.metadata
+        if (metadata) {
+            const annotations = metadata.annotations
+            if (annotations) {
+                const quotaSize = annotations['quota-size']
+                if (quotaSize !== size) {
+                    await deleteResourceQuotas(projectName, metadata.name)
+                }
+            }
+        }
+    }
+}
+
+async function updateExistingQuotas(projectName, size) {
+    const specs = getQuotaSpecs(size)
+    const existingQuotas = await getResourceQuotas(projectName)
+
+    const results = []
+    for (const spec of specs) {
+        let specFound = false
+        for (const quota of existingQuotas.items) {
+            const metadata = quota.metadata
+            if (metadata) {
+                if (metadata.name === spec.metadata.name) {
+                    results.push(await updateResourceQuotas(projectName, spec))
+                    specFound = true
+                    break
+                }
+            }
+        }
+        if (!specFound) {
+            results.push(await createResourceQuotas(projectName, spec))
+        }
+    }
+
+    return results
+}
+
+async function createProjectQuotas(projectName, size) {
+    const specs = getQuotaSpecs(size)
+    const results = []
+    for (const spec of specs) {
+        results.push(await createResourceQuotas(projectName, spec))
+    }
+
+    return results
+}
+
+async function updateProjectQuotas(projectName, size) {
+    const results = await updateExistingQuotas(projectName, size)
+    await keepQuotaSize(projectName, size)
+
+    return results
+}
+
 async function createRoleBinding(roleName, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings`
     const body = {
@@ -170,9 +268,8 @@ module.exports = {
     createProjectRequest,
     updateProjectAnnotations,
     getResourceQuotas,
-    createResourceQuotas,
-    updateResourceQuotas,
-    deleteResourceQuotas,
+    createProjectQuotas,
+    updateProjectQuotas,
     updateRoleBinding,
     getRoleBinding,
     getRoleBindings,
