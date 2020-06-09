@@ -96,6 +96,16 @@ async function deleteResourceQuotas(projectName, quotaName) {
     return response.data
 }
 
+function isScopedParam(param, scopes) {
+    for (const otherScope of scopes.filter(s => s.length > 0)) {
+        if (param.startsWith(otherScope.toUpperCase())) {
+            return true
+        }
+    }
+
+    return false
+}
+
 function getQuotaSpecs(quotaSize) {
     const scopes = ['', 'NotTerminating', 'Terminating']
 
@@ -109,10 +119,12 @@ function getQuotaSpecs(quotaSize) {
             const prefixIndex = key.toUpperCase().indexOf(envPrefix)
             if (prefixIndex === 0) {
                 const param = key.substring(envPrefix.length)
-                if (param === 'NAME') {
-                    metadata.name = value
-                } else {
-                    spec[param.toLowerCase().replace(/_/g, '.')] = value
+                if (!isScopedParam(param, scopes)) {
+                    if (param === 'NAME') {
+                        metadata.name = value
+                    } else {
+                        spec[param.toLowerCase().replace(/_/g, '.')] = value
+                    }
                 }
             }
         }
