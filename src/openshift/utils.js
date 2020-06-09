@@ -177,16 +177,6 @@ async function updateExistingQuotas(projectName, size) {
     return results
 }
 
-async function createProjectQuotas(projectName, size) {
-    const specs = getQuotaSpecs(size)
-    const results = []
-    for (const spec of specs) {
-        results.push(await createResourceQuotas(projectName, spec))
-    }
-
-    return results
-}
-
 async function updateProjectQuotas(projectName, size) {
     const results = await updateExistingQuotas(projectName, size)
     await keepQuotaSize(projectName, size)
@@ -268,7 +258,6 @@ module.exports = {
     createProjectRequest,
     updateProjectAnnotations,
     getResourceQuotas,
-    createProjectQuotas,
     updateProjectQuotas,
     updateRoleBinding,
     getRoleBinding,

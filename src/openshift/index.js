@@ -10,7 +10,6 @@ router.delete('/projects/:project', deleteProject)
 
 router.get('/projects/:project/resourcequotas', getResourceQuotas)
 router.post('/projects/:project/resourcequotas', createResourceQuotas)
-router.put('/projects/:project/resourcequotas', updateResourceQuotas)
 
 router.get('/projects/:project/rolebindings', getRoleBindings)
 router.post('/projects/:project/rolebindings', addUserToProject)
@@ -27,9 +26,10 @@ async function createProject(req, res, next) {
     } else try {
         const projectObj = await utils.createProjectRequest(project)
         await utils.updateProjectAnnotations(projectObj, username)
-        await utils.createProjectQuotas(project, 'small') // default project quota size
-        await utils.addUserToRolebinding(projectObj.metadata.name, 'subadmin', username)
-        await res.json(await utils.getProject(projectObj.metadata.name))
+        const projectName = projectObj.metadata.name
+        await utils.updateProjectQuotas(projectName, 'small') // default project quota size
+        await utils.addUserToRolebinding(projectName, 'subadmin', username)
+        await res.json(await utils.getProject(projectName))
     } catch (e) {
         next(e)
     }
@@ -81,16 +81,6 @@ async function getResourceQuotas(req, res, next) {
 }
 
 async function createResourceQuotas(req, res, next) {
-    const { project, size } = req.body
-
-    try {
-        await res.json(await utils.createProjectQuotas(project, size))
-    } catch (e) {
-        next(e)
-    }
-}
-
-async function updateResourceQuotas(req, res, next) {
     const projectName = req.params['project']
     const { size } = req.body
 
