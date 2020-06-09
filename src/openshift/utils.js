@@ -154,7 +154,7 @@ async function keepQuotaSize(projectName, size) {
 
 async function updateExistingQuotas(projectName, size) {
     const specs = getQuotaSpecs(size)
-    console.log(specs)
+    console.log(JSON.stringify(specs, null, 2))
     const existingQuotas = await getResourceQuotas(projectName)
 
     const results = []
