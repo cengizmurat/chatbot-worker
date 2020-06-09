@@ -97,24 +97,19 @@ async function deleteResourceQuotas(projectName, quotaName) {
 }
 
 function getQuotaSpecs(quotaSize) {
-    const scopes = ['NotTerminating', 'Terminating']
+    const scopes = ['', 'NotTerminating', 'Terminating']
     const envPrefix = `QUOTA_${quotaSize.toUpperCase()}_`
-    console.log(`Prefix: ${envPrefix}`)
 
     const specs = []
     for (const scope of scopes) {
-        console.log(`Scope: ${scope}`)
         const metadata = {}
         const spec = {}
         for (const [key, value] of Object.entries(process.env)) {
-            console.log(`Env: ${key}`)
             const prefixIndex = key.toUpperCase().indexOf(envPrefix)
             if (prefixIndex === 0) {
-                console.log('Prefix OK')
                 const scopeIndex = key.indexOf(scope.toUpperCase(), envPrefix.length)
-                if (scopeIndex === envPrefix.length + 1) {
-                    const param = key.substring(scopeIndex + scope.length + 1)
-                    console.log(`Param: ${param}`)
+                if (scopeIndex === envPrefix.length) {
+                    const param = key.substring(scopeIndex + (scope ? scope.length + 1 : 0))
                     if (param === 'NAME') {
                         metadata.name = value
                     } else {
