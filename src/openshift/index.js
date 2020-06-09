@@ -74,7 +74,7 @@ async function deleteProject(req, res, next) {
 async function getResourceQuotas(req, res, next) {
     const projectName = req.params['project']
     try {
-        await res.json(await utils.getResourceQuotas(projectName))
+        await res.json((await utils.getResourceQuotas(projectName)).items)
     } catch (e) {
         next(e)
     }
