@@ -130,7 +130,7 @@ function getQuotaSpecs(quotaSize) {
         }
 
         if (metadata.name) {
-            metadata.annotations = {
+            metadata.labels = {
                 'quota-size': quotaSize
             }
             specs.push({
@@ -151,9 +151,9 @@ async function keepQuotaSize(projectName, size) {
     for (const quota of existingQuotas.items) {
         const metadata = quota.metadata
         if (metadata) {
-            const annotations = metadata.annotations
-            if (annotations) {
-                const quotaSize = annotations['quota-size']
+            const labels = metadata.labels
+            if (labels) {
+                const quotaSize = labels['quota-size']
                 if (quotaSize !== size) {
                     await deleteResourceQuotas(projectName, metadata.name)
                 }
