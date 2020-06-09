@@ -107,9 +107,18 @@ function getQuotaSpecs(quotaSize) {
         for (const [key, value] of Object.entries(process.env)) {
             const prefixIndex = key.toUpperCase().indexOf(envPrefix)
             if (prefixIndex === 0) {
-                const scopeIndex = key.indexOf(scope.toUpperCase(), envPrefix.length)
-                if (scopeIndex === envPrefix.length) {
-                    const param = key.substring(scopeIndex + (scope ? scope.length + 1 : 0))
+                if (scope) {
+                    const scopeIndex = key.indexOf(scope.toUpperCase(), envPrefix.length)
+                    if (scopeIndex === envPrefix.length) {
+                        const param = key.substring(scopeIndex + scope.length + 1)
+                        if (param === 'NAME') {
+                            metadata.name = value
+                        } else {
+                            spec[param.toLowerCase().replace(/_/g, '.')] = value
+                        }
+                    }
+                } else {
+                    const param = key.substring(envPrefix.length)
                     if (param === 'NAME') {
                         metadata.name = value
                     } else {
@@ -127,7 +136,7 @@ function getQuotaSpecs(quotaSize) {
                 metadata: metadata,
                 spec: {
                     hard: spec,
-                    scopes: [ scope ]
+                    scopes: scope ? [ scope ] : undefined
                 }
             })
         }
