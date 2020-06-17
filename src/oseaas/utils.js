@@ -104,12 +104,12 @@ async function addRoleBinding(clusterName, projectName, userName, role) {
     return response.data
 }
 
-async function updateRoleBindingResult(operation, actionName, username, role) {
+async function updateRoleBindingResult(operation, actionName) {
     const details = operation.details
     if (details) {
         const action = details[actionName]
         if (action) {
-            const openshiftAction = action[`User-${username}-${role}`]
+            const openshiftAction = Object.values(action)[0]
             if (openshiftAction) {
                 return openshiftAction
             }
