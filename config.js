@@ -3,7 +3,11 @@ const fs = require('fs')
 const configFile = 'config.json'
 
 let config = {}
-const variables = ['OPENSHIFT_URL', 'GITHUB_URL', 'GITHUB_TOKEN']
+const variables = [
+  'OPENSHIFT_URL',
+  'GITHUB_URL',
+  'GITHUB_TOKEN',
+]
 // Optional variables and their default values
 const optionalVariables = {
   'PORT': '3000',
@@ -13,7 +17,11 @@ const optionalVariables = {
   'CLIENT_SECRET': undefined,
   'SCOPE': undefined,
   'CLUSTER_NAME': undefined,
-  'LOG': 'INFO'
+  'LDAP_URL': undefined,
+  'LDAP_BASE': undefined,
+  'LDAP_DN': undefined,
+  'LDAP_PASSWORD': undefined,
+  'LOG': 'INFO',
 }
 
 if (fs.existsSync(configFile)) {

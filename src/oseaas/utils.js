@@ -1,4 +1,5 @@
 const axios = require('axios')
+const ldap = require('./ldap.js')
 const config = require('../../config.js')
 const logger = require('../logger')
 
@@ -153,6 +154,20 @@ async function operationResult(operationId) {
     return response.data
 }
 
+async function getUserFromLdap(uid) {
+    const users = await ldap.search(uid)
+    if (users && users.length > 0) {
+        const user = users[0]
+        if (user.sgzoneid) {
+            const sgZoneIdStr = user.sgzoneid.toString()
+            if (sgZoneIdStr.startsWith('9')) {
+                user.sgzoneid = parseInt('1' + sgZoneIdStr.substring(1))
+            }
+        }
+        return user
+    }
+}
+
 module.exports = {
     createProject,
     getProjects,
@@ -162,4 +177,5 @@ module.exports = {
     getRoleBindings,
     deleteRoleBinding,
     operationResult,
+    getUserFromLdap,
 }

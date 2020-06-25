@@ -118,6 +118,7 @@ async function getProjects(req, res, next) {
     try {
         const projects = []
         if (username) {
+            const ldapUser = await utils.getUserFromLdap(username)
             const intervals = []
             const allProjects = await utils.getProjects(clusterName)
             for (const project of allProjects) {
@@ -135,7 +136,7 @@ async function getProjects(req, res, next) {
                                     const roleName = roleMetadata.name
                                     if (roleName === 'edit') {
                                         for (const subject of rolebinding.subjects) {
-                                            if (subject.name === username) {
+                                            if (subject.name === ldapUser.sgzoneid.toString()) {
                                                 projects.push(roleMetadata.namespace)
                                                 break
                                             }
@@ -286,6 +287,7 @@ async function removeUserFromProject(req, res, next) {
     logger.log(`Removing all roles from user ${username} in project "${projectName}"...`, 'INFO')
 
     try {
+        const ldapUser = await utils.getUserFromLdap(username)
         const roles = await utils.getRoleBindings(clusterName, projectName)
         const intervalID1 = setInterval(async function() {
             const result = await utils.operationResult(roles.operation_id)
@@ -296,10 +298,11 @@ async function removeUserFromProject(req, res, next) {
                 const roleBindingList = details.body
                 if (operation.state === 'success') {
                     for (const roleBinding of roleBindingList.items) {
-                        const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(username) !== -1
+                        const sgZoneId = ldapUser.sgzoneid.toString()
+                        const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(sgZoneId) !== -1
                         if (isSubject) {
-                            roleBinding.userNames = roleBinding.userNames.filter(user => user !== username)
-                            roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== username)
+                            roleBinding.userNames = roleBinding.userNames.filter(user => user !== sgZoneId)
+                            roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== sgZoneId)
                             await utils.deleteRoleBinding(clusterName, projectName, username, roleBinding.metadata.name)
                         }
                     }
