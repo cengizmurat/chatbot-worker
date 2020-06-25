@@ -224,7 +224,8 @@ async function getRoleBindings(req, res, next) {
                     for (const item of items) {
                         for (const subject of item.subjects) {
                             if (subject.kind === 'User') {
-                                subject.name = await utils.getUserFromLdap({ sgzoneid: subject.name })
+                                const ldapUser = await utils.getUserFromLdap({ sgzoneid: subject.name })
+                                subject.name = ldapUser.sgzoneid.toString()
                             }
                         }
                     }
