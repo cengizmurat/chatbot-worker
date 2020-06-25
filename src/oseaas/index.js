@@ -118,7 +118,7 @@ async function getProjects(req, res, next) {
     try {
         const projects = []
         if (username) {
-            const ldapUser = await utils.getUserFromLdap(username)
+            const ldapUser = await utils.getUserFromLdap({ uid: username })
             const intervals = []
             const allProjects = await utils.getProjects(clusterName)
             for (const project of allProjects) {
@@ -219,6 +219,17 @@ async function getRoleBindings(req, res, next) {
                     logger.log(`Error when getting RoleBindings of project "${projectName}"`, 'ERROR')
                     logger.log(details, 'TRACE')
                 }
+                if (details.code.toString().startsWith('2')) {
+                    const items = details.body.items
+                    for (const item of items) {
+                        for (const subject of item.subjects) {
+                            if (subject.kind === 'User') {
+                                subject.name = await utils.getUserFromLdap({ sgzoneid: subject.name })
+                            }
+                        }
+                    }
+                }
+
                 res.status(details.code)
                 await res.json(details.body)
             }
@@ -287,7 +298,7 @@ async function removeUserFromProject(req, res, next) {
     logger.log(`Removing all roles from user ${username} in project "${projectName}"...`, 'INFO')
 
     try {
-        const ldapUser = await utils.getUserFromLdap(username)
+        const ldapUser = await utils.getUserFromLdap({ uid: username })
         const roles = await utils.getRoleBindings(clusterName, projectName)
         const intervalID1 = setInterval(async function() {
             const result = await utils.operationResult(roles.operation_id)

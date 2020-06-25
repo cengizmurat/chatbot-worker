@@ -154,8 +154,8 @@ async function operationResult(operationId) {
     return response.data
 }
 
-async function getUserFromLdap(uid) {
-    const users = await ldap.search(uid)
+async function getUserFromLdap(filters) {
+    const users = await ldap.search(filters)
     if (users && users.length > 0) {
         const user = users[0]
         if (user.sgzoneid) {

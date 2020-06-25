@@ -17,8 +17,9 @@ const attributes = [
     'sgzoneid',
 ]
 
-async function search(uid) {
-    return await client.search(`(uid=${uid})`, attributes)
+async function search(filters) {
+    const filter = Object.entries(filters).map(entry => entry.join('=')).join(',')
+    return await client.search(`(${filter})`, attributes)
 }
 
 module.exports = {
