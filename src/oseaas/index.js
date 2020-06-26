@@ -181,19 +181,24 @@ async function deleteProject(req, res, next) {
     try {
         const response = await utils.deleteProject(clusterName, projectName)
         const intervalID = setInterval(async function() {
-            const result = await utils.operationResult(response.operation_id)
-            const operation = result.operation
-            if (operation.state !== 'running') {
-                clearInterval(intervalID)
-                const details = result.details[`delete_project_${clusterName}`]
-                if (details.code.toString().startsWith('2')) {
-                    logger.log(`Deleted project "${projectName}"`, 'INFO')
-                } else {
-                    logger.log(`Error deleting project "${projectName}"`, 'ERROR')
-                    logger.log(details, 'TRACE')
+            try {
+                const result = await utils.operationResult(response.operation_id)
+                const operation = result.operation
+                const details = result.details ? result.details[`delete_project_${clusterName}`] : undefined
+                if (details || operation.state !== 'running') {
+                    clearInterval(intervalID)
+                    if (details.code.toString().startsWith('2')) {
+                        logger.log(`Deleted project "${projectName}"`, 'INFO')
+                    } else {
+                        logger.log(`Error deleting project "${projectName}"`, 'ERROR')
+                        logger.log(details, 'TRACE')
+                    }
+                    res.status(details.code)
+                    await res.json(details.body)
                 }
-                res.status(details.code)
-                await res.json(details.body)
+            } catch (e) {
+                clearInterval(intervalID)
+                next(e)
             }
         }, pollingRate)
     } catch (e) {
@@ -208,33 +213,38 @@ async function getRoleBindings(req, res, next) {
     try {
         const response = await utils.getRoleBindings(clusterName, projectName)
         const intervalID = setInterval(async function() {
-            const result = await utils.operationResult(response.operation_id)
-            const operation = result.operation
-            if (operation.state !== 'running') {
-                clearInterval(intervalID)
-                const details = result.details[`get_rolebindings_${clusterName}`]
-                if (details.code.toString().startsWith('2')) {
-                    logger.log(`Found RoleBindings of project "${projectName}"`, 'INFO')
-                } else {
-                    logger.log(`Error when getting RoleBindings of project "${projectName}"`, 'ERROR')
-                    logger.log(details, 'TRACE')
-                }
-                if (details.code.toString().startsWith('2')) {
-                    const items = details.body.items
-                    for (const item of items) {
-                        for (const subject of item.subjects) {
-                            if (subject.kind === 'User') {
-                                const ldapUser = await utils.getUserFromLdap({ sgzoneid: subject.name })
-                                if (ldapUser) {
-                                    subject.name = ldapUser.uid.toString()
+            try {
+                const result = await utils.operationResult(response.operation_id)
+                const operation = result.operation
+                const details = result.details ? result.details[`get_rolebindings_${clusterName}`] : undefined
+                if (details || operation.state !== 'running') {
+                    clearInterval(intervalID)
+                    if (details.code.toString().startsWith('2')) {
+                        logger.log(`Found RoleBindings of project "${projectName}"`, 'INFO')
+                    } else {
+                        logger.log(`Error when getting RoleBindings of project "${projectName}"`, 'ERROR')
+                        logger.log(details, 'TRACE')
+                    }
+                    if (details.code.toString().startsWith('2')) {
+                        const items = details.body.items
+                        for (const item of items) {
+                            for (const subject of item.subjects) {
+                                if (subject.kind === 'User') {
+                                    const ldapUser = await utils.getUserFromLdap({sgzoneid: subject.name})
+                                    if (ldapUser) {
+                                        subject.name = ldapUser.uid.toString()
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                res.status(details.code)
-                await res.json(details.body)
+                    res.status(details.code)
+                    await res.json(details.body)
+                }
+            } catch (e) {
+                clearInterval(intervalID)
+                next(e)
             }
         }, pollingRate)
     } catch (e) {
@@ -249,18 +259,23 @@ async function addUserToProject(req, res, next) {
     try {
         const response = await utils.addRoleBinding(clusterName, projectName, username, role)
         const intervalID = setInterval(async function() {
-            const operation = await utils.operationResult(response.operation_id)
-            const postRoleBinding = await utils.updateRoleBindingResult(operation, `post_rolebinding_${clusterName}`)
-            if (postRoleBinding) {
-                clearInterval(intervalID)
-                if (postRoleBinding.code.toString().startsWith('2')) {
-                    logger.log(`Added role ${role} to user ${username} in project "${projectName}"`, 'INFO')
-                } else {
-                    logger.log(`Error when adding role ${role} to user ${username} in project "${projectName}"`, 'ERROR')
-                    logger.log(postRoleBinding, 'TRACE')
+            try {
+                const operation = await utils.operationResult(response.operation_id)
+                const postRoleBinding = await utils.updateRoleBindingResult(operation, `post_rolebinding_${clusterName}`)
+                if (postRoleBinding) {
+                    clearInterval(intervalID)
+                    if (postRoleBinding.code.toString().startsWith('2')) {
+                        logger.log(`Added role ${role} to user ${username} in project "${projectName}"`, 'INFO')
+                    } else {
+                        logger.log(`Error when adding role ${role} to user ${username} in project "${projectName}"`, 'ERROR')
+                        logger.log(postRoleBinding, 'TRACE')
+                    }
+                    res.status(postRoleBinding.code)
+                    await res.json(postRoleBinding.body)
                 }
-                res.status(postRoleBinding.code)
-                await res.json(postRoleBinding.body)
+            } catch (e) {
+                clearInterval(intervalID)
+                next(e)
             }
         }, pollingRate)
     } catch (e) {
@@ -276,18 +291,23 @@ async function removeUserRoleFromProject(req, res, next) {
     try {
         const response = await utils.deleteRoleBinding(clusterName, projectName, username, role)
         const intervalID = setInterval(async function() {
-            const operation = await utils.operationResult(response.operation_id)
-            const deleteRoleBinding = await utils.updateRoleBindingResult(operation, `delete_rolebinding_${clusterName}`)
-            if (deleteRoleBinding) {
-                clearInterval(intervalID)
-                if (deleteRoleBinding.code.toString().startsWith('2')) {
-                    logger.log(`Removed role ${role} from user ${username} in project "${projectName}"`, 'INFO')
-                } else {
-                    logger.log(`Error when removing role ${role} from user ${username} in project "${projectName}"`, 'ERROR')
-                    logger.log(deleteRoleBinding, 'TRACE')
+            try {
+                const operation = await utils.operationResult(response.operation_id)
+                const deleteRoleBinding = await utils.updateRoleBindingResult(operation, `delete_rolebinding_${clusterName}`)
+                if (deleteRoleBinding) {
+                    clearInterval(intervalID)
+                    if (deleteRoleBinding.code.toString().startsWith('2')) {
+                        logger.log(`Removed role ${role} from user ${username} in project "${projectName}"`, 'INFO')
+                    } else {
+                        logger.log(`Error when removing role ${role} from user ${username} in project "${projectName}"`, 'ERROR')
+                        logger.log(deleteRoleBinding, 'TRACE')
+                    }
+                    res.status(deleteRoleBinding.code)
+                    await res.json(deleteRoleBinding.body)
                 }
-                res.status(deleteRoleBinding.code)
-                await res.json(deleteRoleBinding.body)
+            } catch (e) {
+                clearInterval(intervalID)
+                next(e)
             }
         }, pollingRate)
     } catch (e) {
@@ -304,28 +324,33 @@ async function removeUserFromProject(req, res, next) {
         const ldapUser = await utils.getUserFromLdap({ uid: username })
         const roles = await utils.getRoleBindings(clusterName, projectName)
         const intervalID1 = setInterval(async function() {
-            const result = await utils.operationResult(roles.operation_id)
-            const operation = result.operation
-            if (operation.state !== 'running') {
-                clearInterval(intervalID1)
-                const details = result.details[`get_rolebindings_${clusterName}`]
-                const roleBindingList = details.body
-                if (operation.state === 'success') {
-                    for (const roleBinding of roleBindingList.items) {
-                        const sgZoneId = ldapUser.sgzoneid.toString()
-                        const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(sgZoneId) !== -1
-                        if (isSubject) {
-                            roleBinding.userNames = roleBinding.userNames.filter(user => user !== sgZoneId)
-                            roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== sgZoneId)
-                            await utils.deleteRoleBinding(clusterName, projectName, username, roleBinding.metadata.name)
+            try {
+                const result = await utils.operationResult(roles.operation_id)
+                const operation = result.operation
+                if (operation.state !== 'running') {
+                    clearInterval(intervalID1)
+                    const details = result.details[`get_rolebindings_${clusterName}`]
+                    const roleBindingList = details.body
+                    if (operation.state === 'success') {
+                        for (const roleBinding of roleBindingList.items) {
+                            const sgZoneId = ldapUser.sgzoneid.toString()
+                            const isSubject = roleBinding.subjects.map(subject => subject.name).indexOf(sgZoneId) !== -1
+                            if (isSubject) {
+                                roleBinding.userNames = roleBinding.userNames.filter(user => user !== sgZoneId)
+                                roleBinding.subjects = roleBinding.subjects.filter(subject => subject.name !== sgZoneId)
+                                await utils.deleteRoleBinding(clusterName, projectName, username, roleBinding.metadata.name)
+                            }
                         }
+                    } else {
+                        res.status(details.code)
+                        logger.log(`Error when removing all roles from user ${username} in project "${projectName}"`, 'ERROR')
+                        logger.log(details, 'TRACE')
                     }
-                } else {
-                    res.status(details.code)
-                    logger.log(`Error when removing all roles from user ${username} in project "${projectName}"`, 'ERROR')
-                    logger.log(details, 'TRACE')
+                    await res.json(roleBindingList)
                 }
-                await res.json(roleBindingList)
+            } catch (e) {
+                clearInterval(intervalID1)
+                next(e)
             }
         }, pollingRate)
     } catch (e) {
