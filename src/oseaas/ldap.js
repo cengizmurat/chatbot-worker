@@ -1,6 +1,7 @@
 const ldap = require('simple-ldap-search')
 
 const config = require('../../config.js')
+const logger = require('../logger.js')
 
 const ldapConfig = {
     url: config.LDAP_URL,
@@ -19,7 +20,12 @@ const attributes = [
 
 async function search(filters) {
     const filter = Object.entries(filters).map(entry => entry.join('=')).join(',')
-    return await client.search(`(${filter})`, attributes)
+    logger.log(`LDAP Search : ${filter}`, 'TRACE')
+
+    const users = await client.search(`(${filter})`, attributes)
+    logger.log(users, 'TRACE')
+
+    return users
 }
 
 module.exports = {
