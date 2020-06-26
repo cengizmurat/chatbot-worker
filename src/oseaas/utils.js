@@ -155,6 +155,13 @@ async function operationResult(operationId) {
 }
 
 async function getUserFromLdap(filters) {
+    for (const [key, value] of Object.entries(filters)) {
+        if (key === 'sgzoneid') {
+            if (value.startsWith('1')) {
+                filters[key] = '9' + value.substring(1)
+            }
+        }
+    }
     const users = await ldap.search(filters)
     if (users && users.length > 0) {
         const user = users[0]
