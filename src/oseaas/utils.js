@@ -136,12 +136,12 @@ async function deleteRoleBinding(clusterName, projectName, userName, role) {
     const url = `/v1/clusters/${clusterName}/projects/${projectName}/rolebindings/users`
     logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
-    const config = {
+    const axiosConfig = {
         data: body,
     }
     const headers = await getHeaders()
-    Object.assign(config, headers)
-    const response = await axiosInstance.delete(url, config)
+    Object.assign(axiosConfig, headers)
+    const response = await axiosInstance.delete(url, axiosConfig)
     logger.log(`Removing ${role} role from ${userName} in project "${projectName}"...`, 'INFO')
     return response.data
 }
