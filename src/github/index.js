@@ -1,7 +1,7 @@
 const fs = require('fs')
 const express = require('express')
 const axios = require('axios')
-const git = require('nodegit')
+const simpleGit = require('simple-git')
 
 const logger = require('../logger')
 const config = require('../../config.js')
@@ -30,35 +30,43 @@ async function importRepository(req, res, next) {
         const repoName = req.params['repoName']
         const {destination_url, vcs_url} = req.body
 
-        const repoPath = `${repoDirectory}/${orgId}/${repoName}`
+        logger.log(`Importing repository "${vcs_url}" to "${destination_url}"`, 'TRACE')
+
+        const baseDirectory = `${repoDirectory}/${orgId}`
+        const repoPath = `${baseDirectory}/${repoName}`
         try {
             if (fs.lstatSync(repoPath).isDirectory()) {
                 fs.rmdirSync(repoPath, {recursive: true})
             }
         } catch (e) {
+        } finally {
+            fs.mkdirSync(baseDirectory, {recursive: true})
         }
 
-        const repo = await git.Clone(vcs_url, repoPath)
-        await git.Remote.setPushurl(repo, 'origin', destination_url)
+        const git = simpleGit(baseDirectory)
+        logger.log(`Cloning repository "${vcs_url}"...`, 'TRACE')
+        await git.clone(vcs_url)
+        logger.log(`"${vcs_url}" cloned`, 'TRACE')
 
-        const remote = await repo.getRemote('origin')
-        const refs = await repo.getReferences()
-        const refSpecs = refs.map(ref => `${ref.toString()}:${ref.toString()}`)
+        await git.cwd(repoPath)
+        await git.removeRemote('origin')
+        await git.addRemote(
+            'origin',
+            destination_url,
+        )
 
-        await remote.push(refSpecs, {
-            callbacks: {
-                credentials: gitCredentials,
-            }
-        })
+        const httpsUrl = 'https://'
+        const isHttps = destination_url.startsWith(httpsUrl)
+        logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
+        await git.push([
+            `http${isHttps ? 's' : ''}://${config.GITHUB_TOKEN}@${destination_url.substring(httpsUrl.length - (isHttps ? 0 : 1))}`
+        ])
+        logger.log(`Pushed to repository "${destination_url}"`, 'TRACE')
 
         await res.json({result: 'OK'})
     } catch (e) {
         next(e)
     }
-}
-
-function gitCredentials(url, user) {
-    return git.Cred.userpassPlaintextNew(config.GITHUB_TOKEN, 'x-oauth-basic')
 }
 
 async function getAll(req, res, next) {
