@@ -96,10 +96,13 @@ async function importRepository(req, res, next) {
 
         const git = simpleGit(baseDirectory)
         logger.log(`Cloning repository "${project.http_url_to_repo}"...`, 'TRACE')
-        await git.clone(project.http_url_to_repo, [
-            '--config',
-            `http.proxy=http://${config.GITLAB_TOKEN}@proxy-mkt.int.world.socgen:8080`,
-        ])
+        await git.clone(
+            authenticatedUrl('x-token-auth', config.GITLAB_TOKEN, project.http_url_to_repo),
+            [
+                '--config',
+                `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
+            ]
+        )
         logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')
 
         await git.cwd(repoPath)
@@ -109,11 +112,9 @@ async function importRepository(req, res, next) {
             destination_url,
         )
 
-        const httpsUrl = 'https://'
-        const isHttps = destination_url.startsWith(httpsUrl)
         logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
         await git.push([
-            `http${isHttps ? 's' : ''}://${config.GITHUB_TOKEN}@${destination_url.substring(httpsUrl.length - (isHttps ? 0 : 1))}`
+            authenticatedUrl(config.GITHUB_TOKEN, '', destination_url)
         ])
         logger.log(`Pushed to repository "${destination_url}"`, 'TRACE')
 
@@ -121,6 +122,13 @@ async function importRepository(req, res, next) {
     } catch (e) {
         next(e)
     }
+}
+
+function authenticatedUrl(user, password, url) {
+    const httpsUrl = 'https://'
+    const isHttps = url.startsWith(httpsUrl)
+
+    return `http${isHttps ? 's' : ''}://${user}${(password ? ':' : '') + password}@${url.substring(httpsUrl.length - (isHttps ? 0 : 1))}`
 }
 
 async function getAll(req, res, next) {
