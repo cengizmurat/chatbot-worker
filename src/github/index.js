@@ -7,7 +7,10 @@ const simpleGit = require('simple-git')
 const logger = require('../logger')
 const config = require('../../config.js')
 const router = express.Router()
-const agent = new httpsProxyAgent('https://proxy-mkt.int.world.socgen:8080')
+const agent = new httpsProxyAgent({
+    host: 'proxy-mkt.int.world.socgen',
+    port: 8080,
+})
 
 if (config.IAMAAS_URL !== undefined) {
     // SGitHub special endpoints
@@ -34,7 +37,7 @@ async function getGroupId(groupName) {
     const parentGroupId = 984
 
     const getUrl = `https://apps.bsc.aws.societegenerale.com/gitlab/api/v4/groups/${parentGroupId}/subgroups?search=${groupName}`
-    logger.log(`[GET] ${getUrl}`, 'TRACE')
+    logger.log(`GET ${getUrl}`, 'TRACE')
     const groups = await gitlabInstance.get(getUrl)
 
     for (const group of groups.data) {
@@ -49,7 +52,7 @@ async function getGroupId(groupName) {
         path: groupName,
         parent_id: parentGroupId,
     }
-    logger.log(`[POST] ${postUrl}`, 'TRACE')
+    logger.log(`POST ${postUrl}`, 'TRACE')
     const newGroup = await gitlabInstance.post(postUrl, body)
     return newGroup.data.id
 }
@@ -62,7 +65,7 @@ async function createProjectInGroup(groupId, projectName, importUrl) {
         import_url: importUrl,
     }
 
-    logger.log(`[POST] ${url}`, 'TRACE')
+    logger.log(`POST ${url}`, 'TRACE')
     const project = await gitlabInstance.post(url, body)
     return project.data
 }
