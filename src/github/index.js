@@ -74,14 +74,16 @@ async function importRepository(req, res, next) {
     try {
         const orgId = req.params['orgId']
         const repoName = req.params['repoName']
-        const {destination_url, vcs_url} = req.body
+        let {destination_url, vcs_url} = req.body
+        destination_url = repoUrl(destination_url)
+        vcs_url = repoUrl(vcs_url)
 
-        logger.log(`Importing repository "${vcs_url}" to GitLab...`, 'TRACE')
+        logger.log(`Importing repository "${vcs_url}" to GitLab...`, 'INFO')
 
         const groupId = await getGroupId(orgId)
         const project = await createProjectInGroup(groupId, repoName, vcs_url)
 
-        logger.log(`Importing GitLab repository to "${destination_url}"`, 'TRACE')
+        logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
 
         const baseDirectory = `${repoDirectory}/${orgId}`
         const repoPath = `${baseDirectory}/${repoName}`
@@ -103,7 +105,7 @@ async function importRepository(req, res, next) {
                 `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
             ]
         )
-        logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')
+        logger.log(`"${project.http_url_to_repo}" cloned`, 'INFO')
 
         await git.cwd(repoPath)
         await git.removeRemote('origin')
@@ -116,12 +118,16 @@ async function importRepository(req, res, next) {
         await git.push([
             authenticatedUrl(config.GITHUB_TOKEN, '', destination_url)
         ])
-        logger.log(`Pushed to repository "${destination_url}"`, 'TRACE')
 
+        logger.log(`Pushed to repository "${destination_url}"`, 'INFO')
         await res.json({result: 'OK'})
     } catch (e) {
         next(e)
     }
+}
+
+function repoUrl(url) {
+    return url + (url.endsWith('.git') ? '' : '.git')
 }
 
 function authenticatedUrl(user, password, url) {
