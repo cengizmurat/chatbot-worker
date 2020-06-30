@@ -96,7 +96,10 @@ async function importRepository(req, res, next) {
 
         const git = simpleGit(baseDirectory)
         logger.log(`Cloning repository "${project.http_url_to_repo}"...`, 'TRACE')
-        await git.clone(project.http_url_to_repo)
+        await git.clone(project.http_url_to_repo, [
+            '--config',
+            `http.proxy=http://${config.GITLAB_TOKEN}@proxy-mkt.int.world.socgen:8080`,
+        ])
         logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')
 
         await git.cwd(repoPath)
