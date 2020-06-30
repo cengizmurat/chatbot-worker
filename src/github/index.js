@@ -113,6 +113,7 @@ async function importRepository(req, res, next) {
             'origin',
             destination_url,
         )
+        await git.addConfig('http.proxy', '', false) // Unset proxy locally
 
         logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
         await git.push([
