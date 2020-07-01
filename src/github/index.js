@@ -124,7 +124,8 @@ async function importRepository(req, res, next) {
 
         logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
         await git.push([
-            authenticatedUrl(config.GITHUB_TOKEN, '', destination_url)
+            authenticatedUrl(config.GITHUB_TOKEN, '', destination_url),
+            'master'
         ])
 
         logger.log(`Pushed to repository "${destination_url}"`, 'INFO')
