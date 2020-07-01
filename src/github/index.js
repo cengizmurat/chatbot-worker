@@ -100,6 +100,7 @@ async function importRepository(req, res, next) {
         logger.log(`Cloning repository "${project.http_url_to_repo}"...`, 'TRACE')
         await git.clone(
             authenticatedUrl('x-token-auth', config.GITLAB_TOKEN, project.http_url_to_repo),
+            project.name,
             [
                 '--config',
                 `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
