@@ -90,6 +90,7 @@ async function importRepository(req, res, next) {
                 const project = await gitlabInstance.get(url)
                 console.log(project.data.import_status)
                 if (project.data.import_status === 'finished') {
+                    clearInterval(intervalID)
                     logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
 
                     const baseDirectory = `${repoDirectory}/${orgId}`
@@ -101,13 +102,13 @@ async function importRepository(req, res, next) {
 
                     await res.json({result: 'OK'})
                 } else if (project.data.import_status === 'failed') {
+                    clearInterval(intervalID)
                     res.status(500)
                     await res.json({error: project.data.import_error})
                 }
             } catch (e) {
-                next(e)
-            } finally {
                 clearInterval(intervalID)
+                next(e)
             }
         }, 1000)
     } catch (e) {
