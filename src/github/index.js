@@ -94,9 +94,7 @@ async function importRepository(req, res, next) {
 
                     logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
                     const baseDirectory = `${repoDirectory}/${orgId}`
-                    if (!fs.lstatSync(baseDirectory).isDirectory()) {
-                        fs.mkdirSync(baseDirectory, {recursive: true})
-                    }
+                    fs.mkdirSync(baseDirectory, {recursive: true})
 
                     const git = simpleGit(baseDirectory)
                     await cloneGitLabRepository(repoName, baseDirectory, project, git)
