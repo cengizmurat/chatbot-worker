@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "prestart": "export GIT_COMMITER_NAME=; export GIT_COMMITER_EMAIL=;",
     "start": "node index.js"
   },
   "keywords": [],
