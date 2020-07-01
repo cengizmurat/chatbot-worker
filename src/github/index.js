@@ -135,7 +135,9 @@ function authenticatedUrl(user, password, url) {
     const httpsUrl = 'https://'
     const isHttps = url.startsWith(httpsUrl)
 
-    return `http${isHttps ? 's' : ''}://${user}${(password ? ':' : '') + password}@${url.substring(httpsUrl.length - (isHttps ? 0 : 1))}`
+    const result =  `http${isHttps ? 's' : ''}://${user}${(password ? ':' : '') + password}@${url.substring(httpsUrl.length - (isHttps ? 0 : 1))}`
+    console.log(result)
+    return result
 }
 
 async function getAll(req, res, next) {
