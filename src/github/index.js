@@ -91,13 +91,16 @@ async function importRepository(req, res, next) {
                 console.log(project.data.import_status)
                 if (project.data.import_status === 'finished') {
                     clearInterval(intervalID)
-                    logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
 
+                    logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
                     const baseDirectory = `${repoDirectory}/${orgId}`
-                    const repoPath = `${baseDirectory}/${repoName}`
+                    if (!fs.lstatSync(baseDirectory).isDirectory()) {
+                        fs.mkdirSync(baseDirectory, {recursive: true})
+                    }
 
                     const git = simpleGit(baseDirectory)
                     await cloneGitLabRepository(repoName, baseDirectory, project, git)
+                    const repoPath = `${baseDirectory}/${repoName}`
                     await pushGitLabRepository(repoPath, destination_url, git)
 
                     await res.json({result: 'OK'})
@@ -115,6 +118,8 @@ async function importRepository(req, res, next) {
         next(e)
     }
 }
+
+
 
 async function cloneGitLabRepository(repoName, baseDirectory, project, git) {
     const repoPath = `${baseDirectory}/${repoName}`
