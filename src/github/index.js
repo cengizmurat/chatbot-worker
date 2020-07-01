@@ -88,6 +88,7 @@ async function importRepository(req, res, next) {
                 const url = `https://apps.bsc.aws.societegenerale.com/gitlab/api/v4/projects/${createdProject.id}`
                 logger.log(`GET ${url}`, 'TRACE')
                 const project = await gitlabInstance.get(url)
+                console.log(project.data.import_status)
                 if (project.data.import_status === 'finished') {
                     logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
 
