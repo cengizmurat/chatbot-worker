@@ -132,7 +132,7 @@ async function cloneGitLabRepository(repoName, baseDirectory, project, git) {
         project.name,
         [
             '--config',
-            `http.proxy=http://${config.PROXY_HOST}:${config.PROXY_HOST}`,
+            `http.proxy=http://${config.PROXY_HOST}:${config.PROXY_PORT}`,
         ],
     )
     logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')
