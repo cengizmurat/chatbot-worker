@@ -97,7 +97,7 @@ async function importRepository(req, res, next) {
                     fs.mkdirSync(baseDirectory, {recursive: true})
 
                     const git = simpleGit(baseDirectory)
-                    await cloneGitLabRepository(repoName, baseDirectory, project, git)
+                    await cloneGitLabRepository(repoName, baseDirectory, project.data, git)
                     const repoPath = `${baseDirectory}/${repoName}`
                     await pushGitLabRepository(repoPath, destination_url, git)
 
