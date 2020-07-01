@@ -107,6 +107,7 @@ async function importRepository(req, res, next) {
             ]
         )
         logger.log(`"${project.http_url_to_repo}" cloned`, 'INFO')
+        console.log(fs.readdirSync(repoPath))
 
         await git.cwd(repoPath)
         await git.removeRemote('origin')
