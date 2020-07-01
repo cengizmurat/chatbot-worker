@@ -106,10 +106,12 @@ async function importRepository(req, res, next) {
                 `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
             ],
             async function() {
-                await cloneHandler(repoPath, project.http_url_to_repo)
+                setTimeout(async function f() {
+                    await cloneHandler(repoPath, project.http_url_to_repo)
+                }, 10000)
             }
         )
-        logger.log(`"1 ${repoUrl}" cloned`, 'INFO')
+        logger.log(`"1 ${project.http_url_to_repo}" cloned`, 'INFO')
         console.log(fs.readdirSync(repoPath))
 
         await git.cwd(repoPath)
