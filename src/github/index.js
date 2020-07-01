@@ -95,7 +95,7 @@ async function importRepository(req, res, next) {
                     const repoPath = `${baseDirectory}/${repoName}`
 
                     const git = simpleGit(baseDirectory)
-                    await cloneGitLabRepository(baseDirectory, project, git)
+                    await cloneGitLabRepository(repoName, baseDirectory, project, git)
                     await pushGitLabRepository(repoPath, destination_url, git)
 
                     await res.json({result: 'OK'})
