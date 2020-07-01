@@ -8,8 +8,8 @@ const logger = require('../logger')
 const config = require('../../config.js')
 const router = express.Router()
 const agent = new httpsProxyAgent({
-    host: 'proxy-mkt.int.world.socgen',
-    port: 8080,
+    host: config.PROXY_HOST,
+    port: config.PROXY_PORT,
 })
 
 if (config.IAMAAS_URL !== undefined) {
@@ -132,7 +132,7 @@ async function cloneGitLabRepository(repoName, baseDirectory, project, git) {
         project.name,
         [
             '--config',
-            `http.proxy=${config.PROXY_URL}`,
+            `http.proxy=http://${config.PROXY_HOST}:${config.PROXY_HOST}`,
         ],
     )
     logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')

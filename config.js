@@ -21,7 +21,10 @@ const optionalVariables = {
   'LDAP_BASE': undefined,
   'LDAP_DN': undefined,
   'LDAP_PASSWORD': undefined,
+  'GITLAB_URL': undefined,
   'GITLAB_TOKEN': undefined,
+  'PROXY_HOST': undefined,
+  'PROXY_PORT': undefined,
   'LOG': 'INFO',
 }
 
