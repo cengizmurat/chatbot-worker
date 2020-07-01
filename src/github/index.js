@@ -104,9 +104,12 @@ async function importRepository(req, res, next) {
             [
                 '--config',
                 `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
-            ]
+            ],
+            async function() {
+                await cloneHandler(repoPath, project.http_url_to_repo)
+            }
         )
-        logger.log(`"${project.http_url_to_repo}" cloned`, 'INFO')
+        logger.log(`"1 ${repoUrl}" cloned`, 'INFO')
         console.log(fs.readdirSync(repoPath))
 
         await git.cwd(repoPath)
@@ -127,6 +130,11 @@ async function importRepository(req, res, next) {
     } catch (e) {
         next(e)
     }
+}
+
+async function cloneHandler(repoPath, repoUrl) {
+    logger.log(`"2 ${repoUrl}" cloned`, 'INFO')
+    console.log(fs.readdirSync(repoPath))
 }
 
 function repoUrl(url) {
