@@ -36,7 +36,7 @@ const repoDirectory = './imports'
 async function getGroupId(groupName) {
     const parentGroupId = 984
 
-    const getUrl = `https://apps.bsc.aws.societegenerale.com/gitlab/api/v4/groups/${parentGroupId}/subgroups?search=${groupName}`
+    const getUrl = `${config.GITLAB_URL}/api/v4/groups/${parentGroupId}/subgroups?search=${groupName}`
     logger.log(`GET ${getUrl}`, 'TRACE')
     const groups = await gitlabInstance.get(getUrl)
 
@@ -46,7 +46,7 @@ async function getGroupId(groupName) {
         }
     }
 
-    const postUrl = 'https://apps.bsc.aws.societegenerale.com/gitlab/api/v4/groups'
+    const postUrl = `${config.GITLAB_URL}/api/v4/groups`
     const body = {
         name: groupName,
         path: groupName,
@@ -58,7 +58,7 @@ async function getGroupId(groupName) {
 }
 
 async function createProjectInGroup(groupId, projectName, importUrl) {
-    const url = 'https://apps.bsc.aws.societegenerale.com/gitlab/api/v4/projects'
+    const url = `${config.GITLAB_URL}/api/v4/projects`
     const body = {
         namespace_id: groupId,
         name: projectName,
@@ -85,7 +85,7 @@ async function importRepository(req, res, next) {
 
         const intervalID = setInterval(async function() {
             try {
-                const url = `https://apps.bsc.aws.societegenerale.com/gitlab/api/v4/projects/${createdProject.id}`
+                const url = `${config.GITLAB_URL}/api/v4/projects/${createdProject.id}`
                 logger.log(`GET ${url}`, 'TRACE')
                 const project = await gitlabInstance.get(url)
                 console.log(project.data.import_status)
@@ -132,7 +132,7 @@ async function cloneGitLabRepository(repoName, baseDirectory, project, git) {
         project.name,
         [
             '--config',
-            `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
+            `http.proxy=${config.PROXY_URL}`,
         ],
     )
     logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')
