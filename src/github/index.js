@@ -81,63 +81,78 @@ async function importRepository(req, res, next) {
         logger.log(`Importing repository "${vcs_url}" to GitLab...`, 'INFO')
 
         const groupId = await getGroupId(orgId)
-        const project = await createProjectInGroup(groupId, repoName, vcs_url)
+        const createdProject = await createProjectInGroup(groupId, repoName, vcs_url)
 
-        logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
+        const intervalID = setInterval(async function() {
+            try {
+                const url = `https://apps.bsc.aws.societegenerale.com/gitlab/api/v4/projects/${createdProject.id}`
+                logger.log(`GET ${url}`, 'TRACE')
+                const project = await gitlabInstance.get(url)
+                if (project.data.import_status === 'finished') {
+                    logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
 
-        const baseDirectory = `${repoDirectory}/${orgId}`
-        const repoPath = `${baseDirectory}/${repoName}`
-        try {
-            if (fs.lstatSync(repoPath).isDirectory()) {
-                fs.rmdirSync(repoPath, {recursive: true})
+                    const baseDirectory = `${repoDirectory}/${orgId}`
+                    const repoPath = `${baseDirectory}/${repoName}`
+
+                    const git = simpleGit(baseDirectory)
+                    await cloneGitLabRepository(baseDirectory, project, git)
+                    await pushGitLabRepository(repoPath, destination_url, git)
+
+                    await res.json({result: 'OK'})
+                } else if (project.data.import_status === 'failed') {
+                    res.status(500)
+                    await res.json({error: project.data.import_error})
+                }
+            } catch (e) {
+                next(e)
+            } finally {
+                clearInterval(intervalID)
             }
-        } catch (e) {
-        } finally {
-            fs.mkdirSync(baseDirectory, {recursive: true})
-        }
-
-        const git = simpleGit(baseDirectory)
-        logger.log(`Cloning repository "${project.http_url_to_repo}"...`, 'TRACE')
-        await git.clone(
-            authenticatedUrl('x-token-auth', config.GITLAB_TOKEN, project.http_url_to_repo),
-            project.name,
-            [
-                '--config',
-                `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
-            ],
-            async function() {
-                setTimeout(async function f() {
-                    await cloneHandler(repoPath, project.http_url_to_repo)
-                }, 10000)
-            }
-        )
-        logger.log(`"1 ${project.http_url_to_repo}" cloned`, 'INFO')
-        console.log(fs.readdirSync(repoPath))
-
-        await git.cwd(repoPath)
-        await git.removeRemote('origin')
-        await git.addRemote(
-            'origin',
-            destination_url,
-        )
-        await git.addConfig('http.proxy', '', false) // Unset proxy locally
-
-        logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
-        await git.push([
-            authenticatedUrl(config.GITHUB_TOKEN, '', destination_url),
-            'master'
-        ])
-
-        logger.log(`Pushed to repository "${destination_url}"`, 'INFO')
-        await res.json({result: 'OK'})
+        }, 1000)
     } catch (e) {
         next(e)
     }
 }
 
-async function cloneHandler(repoPath, repoUrl) {
-    logger.log(`"2 ${repoUrl}" cloned`, 'INFO')
-    console.log(fs.readdirSync(repoPath))
+async function cloneGitLabRepository(repoName, baseDirectory, project, git) {
+    const repoPath = `${baseDirectory}/${repoName}`
+    try {
+        if (fs.lstatSync(repoPath).isDirectory()) {
+            fs.rmdirSync(repoPath, {recursive: true})
+        }
+    } catch (e) {
+    } finally {
+        fs.mkdirSync(baseDirectory, {recursive: true})
+    }
+
+    logger.log(`Cloning repository "${project.http_url_to_repo}"...`, 'TRACE')
+    await git.clone(
+        authenticatedUrl('x-token-auth', config.GITLAB_TOKEN, project.http_url_to_repo),
+        project.name,
+        [
+            '--config',
+            `http.proxy=http://proxy-mkt.int.world.socgen:8080`,
+        ],
+    )
+    logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')
+}
+
+async function pushGitLabRepository(repoPath, destination_url, git) {
+    await git.cwd(repoPath)
+    await git.removeRemote('origin')
+    await git.addRemote(
+        'origin',
+        destination_url,
+    )
+    await git.addConfig('http.proxy', '', false) // Unset proxy locally
+
+    logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
+    await git.push([
+        authenticatedUrl(config.GITHUB_TOKEN, '', destination_url),
+        'master'
+    ])
+
+    logger.log(`Pushed to repository "${destination_url}"`, 'INFO')
 }
 
 function repoUrl(url) {
@@ -149,7 +164,6 @@ function authenticatedUrl(user, password, url) {
     const isHttps = url.startsWith(httpsUrl)
 
     const result =  `http${isHttps ? 's' : ''}://${user}${(password ? ':' : '') + password}@${url.substring(httpsUrl.length - (isHttps ? 0 : 1))}`
-    console.log(result)
     return result
 }
 
