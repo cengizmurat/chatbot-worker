@@ -34,8 +34,6 @@ async function getAll(req, res, next) {
 
 async function postAll(req, res, next) {
     try {
-        console.log(req.params)
-        console.log(req.body)
         const url = handleGraphQLurl(baseUrl + req.params['0'])
         const body = req.body
         logger.log(`POST ${url}`, 'TRACE')
@@ -76,15 +74,11 @@ function handleGraphQLurl(url) {
     const regex = /https?:\/\/.+(v\d+\/)graphql$/mg
 
     let match
-    console.log('0')
     while ((match = regex.exec(url)) !== null) {
-        console.log('1')
         // This is necessary to avoid infinite loops with zero-width matches
         if (match.index === regex.lastIndex) regex.lastIndex++
 
-        console.log('2')
         url = match.input.replace(match[1], '')
-        console.log('3')
     }
 
     return url
