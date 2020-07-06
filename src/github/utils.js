@@ -19,6 +19,7 @@ const gitlabInstance = axios.create({
 
 const repoDirectory = 'imports'
 const gitlabImportsGroupId = 984
+let currentUserId
 
 async function importRepository(req, res, next) {
     try {
@@ -92,12 +93,28 @@ async function getGroupId(groupName) {
     return newGroup.data.id
 }
 
+async function getCurrentUserId() {
+    if (currentUserId) {
+        return currentUserId
+    }
+
+    const url = `${config.GITLAB_URL}/api/v4/user`
+    logger.log(`GET ${url}`, 'TRACE')
+
+    const response = await gitlabInstance.get(url)
+    return response.data.id
+}
+
 async function createProjectInGroup(groupId, projectName, importUrl) {
     const url = `${config.GITLAB_URL}/api/v4/projects`
     const body = {
         namespace_id: groupId,
         name: projectName,
         import_url: importUrl,
+        mirror: true,
+        mirror_user_id: await getCurrentUserId(),
+        mirror_trigger_builds: false,
+        only_mirror_protected_branches: false,
     }
 
     logger.log(`POST ${url}`, 'TRACE')
