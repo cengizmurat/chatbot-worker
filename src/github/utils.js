@@ -156,8 +156,8 @@ async function pushGitLabRepository(repoPath, destination_url, git) {
 
     logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
     await git.push([
+        '--all',
         authenticatedUrl(config.GITHUB_TOKEN, '', destination_url),
-        'master'
     ])
 
     logger.log(`Pushed to repository "${destination_url}"`, 'INFO')
