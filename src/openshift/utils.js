@@ -10,7 +10,7 @@ const axiosInstance = axios.create({
 
 async function getProject(projectName) {
     const url = `/apis/project.openshift.io/v1/projects/${projectName}`
-    logger.log(`GET ${url}`, 'TRACE')
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.get(url)
     return response.data
@@ -18,7 +18,7 @@ async function getProject(projectName) {
 
 async function deleteProject(projectName) {
     const url = `/apis/project.openshift.io/v1/projects/${projectName}`
-    logger.log(`DELETE ${url}`, 'TRACE')
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.delete(url)
     return response.data
@@ -33,7 +33,7 @@ async function createProjectRequest(projectName) {
             name: projectName,
         }
     }
-    logger.log(`POST ${url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
     return response.data
@@ -53,7 +53,7 @@ async function updateProjectAnnotations(project, username) {
             }
         }
     }
-    logger.log(`PUT ${url}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.put(url, body)
     return response.data
@@ -61,7 +61,7 @@ async function updateProjectAnnotations(project, username) {
 
 async function getResourceQuotas(projectName) {
     const url = `/api/v1/namespaces/${projectName}/resourcequotas`
-    logger.log(`GET ${url}`, 'TRACE')
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.get(url)
     return response.data
@@ -72,7 +72,7 @@ async function createResourceQuotas(projectName, quotaSpecs) {
     quotaSpecs.kind = "ResourceQuota"
     quotaSpecs.apiVersion = "v1"
 
-    logger.log(`POST ${url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.post(url, quotaSpecs)
     return response.data
@@ -82,7 +82,7 @@ async function updateResourceQuotas(projectName, quotaSpecs) {
     const url = `/api/v1/namespaces/${projectName}/resourcequotas/${quotaSpecs.metadata.name}`
     quotaSpecs.kind = "ResourceQuota"
     quotaSpecs.apiVersion = "v1"
-    logger.log(`PUT ${url}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.put(url, quotaSpecs)
     return response.data
@@ -90,7 +90,7 @@ async function updateResourceQuotas(projectName, quotaSpecs) {
 
 async function deleteResourceQuotas(projectName, quotaName) {
     const url = `/api/v1/namespaces/${projectName}/resourcequotas/${quotaName}`
-    logger.log(`DELETE ${url}`, 'TRACE')
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.delete(url)
     return response.data
@@ -207,7 +207,7 @@ async function createRoleBinding(roleName, projectName) {
             name: roleName
         }
     }
-    logger.log(`POST ${url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
     const role = response.data
@@ -218,7 +218,7 @@ async function createRoleBinding(roleName, projectName) {
 
 async function updateRoleBinding(roleBinding, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings/${roleBinding.metadata.name}`
-    logger.log(`PUT ${url}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.put(url, roleBinding)
     return response.data
@@ -231,7 +231,7 @@ async function getRoleBindings(projectName) {
     } else {
         url = `/apis/authorization.openshift.io/v1/namespaces/${projectName}/rolebindings`
     }
-    logger.log(`GET ${url}`, 'TRACE')
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const rolebindings = await axiosInstance.get(url)
     return rolebindings.data
@@ -260,6 +260,83 @@ async function addUserToRolebinding(projectName, roleName, username) {
     })
 
     return await updateRoleBinding(roleBinding, projectName)
+}
+
+async function createMachineSet(namespace, name, region, instanceType, instances, billingModel, maxPrice = undefined) {
+    const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
+    const fullName = `${name}-${instanceType}-${region}`
+    const metadata = {
+        name: fullName,
+        //namespace: namespace,
+        labels: {
+            "machine.openshift.io/cluster-api-cluster": name,
+            "node-role.kubernetes.io/spot": "",
+            region: region,
+            type: instanceType,
+        }
+    }
+    const providerSpec = {
+        value: {
+            apiVersion: "awsproviderconfig.openshift.io/v1beta1",
+            instanceType: "c5.xlarge",
+            kind: "AWSMachineProviderConfig",
+            placement: {
+                availabilityZone: "eu-west-1b",
+                region: "eu-west-1",
+            },
+        }
+    }
+    if (instanceType.indexOf('spot') > -1) {
+        providerSpec.value['InstanceLifecycle'] = 'spot'
+        providerSpec.value.spotMarketOptions = {
+            maxPrice: maxPrice,
+        }
+    }
+    const templateSpec = {
+        metadata: {
+            labels: {
+                type: instanceType,
+            }
+        },
+        providerSpec: providerSpec,
+    }
+    const template = {
+        metadata: {
+            labels: {
+                "machine.openshift.io/cluster-api-cluster": name,
+                "machine.openshift.io/cluster-api-machineset": fullName,
+                "node-role.kubernetes.io/worker": ""
+            }
+        },
+        spec: templateSpec,
+    }
+    if (instanceType.indexOf('spot') > -1) {
+        template.metadata.labels['machine.openshift.io/cluster-api-machine-role'] = 'spot'
+        template.metadata.labels['machine.openshift.io/cluster-api-machine-type'] = 'spot'
+    } else {
+        template.metadata.labels['machine.openshift.io/cluster-api-machine-role'] = 'worker'
+        template.metadata.labels['machine.openshift.io/cluster-api-machine-type'] = 'worker'
+    }
+    const spec = {
+        replicas: 3,
+        selector: {
+            matchLabels: {
+                "machine.openshift.io/cluster-api-cluster": name,
+                "machine.openshift.io/cluster-api-machineset": fullName,
+            }
+        },
+        template: template,
+    }
+    const body = {
+        apiVersion: "machine.openshift.io/v1beta1",
+        kind: "MachineSet",
+        metadata: metadata,
+        spec: spec,
+    }
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.post(url, body)
+    return response.data
 }
 
 module.exports = {
