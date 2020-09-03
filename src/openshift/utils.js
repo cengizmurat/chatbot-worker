@@ -266,7 +266,15 @@ async function addUserToRolebinding(projectName, roleName, username) {
     return await updateRoleBinding(roleBinding, projectName)
 }
 
-async function createMachineSet(namespace, name, region, instanceType, instances, billingModel, maxPrice = undefined) {
+async function getMachineSets(namespace) {
+    const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(url)
+    return response.data
+}
+
+async function createMachineSet(namespace, name, region, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
     const fullName = `${name}-${instanceType}-${region}`
     const metadata = {
@@ -282,11 +290,12 @@ async function createMachineSet(namespace, name, region, instanceType, instances
     const providerSpec = {
         value: {
             apiVersion: "awsproviderconfig.openshift.io/v1beta1",
-            instanceType: "c5.xlarge",
+            //instanceType: "c5.xlarge",
+            instanceType: instanceSize,
             kind: "AWSMachineProviderConfig",
             placement: {
-                availabilityZone: "eu-west-1b",
-                region: "eu-west-1",
+                //availabilityZone: "eu-west-1b",
+                region: region,
             },
         }
     }
@@ -322,7 +331,7 @@ async function createMachineSet(namespace, name, region, instanceType, instances
         template.metadata.labels['machine.openshift.io/cluster-api-machine-type'] = 'worker'
     }
     const spec = {
-        replicas: 3,
+        replicas: replicas,
         selector: {
             matchLabels: {
                 "machine.openshift.io/cluster-api-cluster": name,
@@ -354,4 +363,6 @@ module.exports = {
     getRoleBinding,
     getRoleBindings,
     addUserToRolebinding,
+    getMachineSets,
+    createMachineSet,
 }

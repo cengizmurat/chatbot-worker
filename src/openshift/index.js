@@ -16,6 +16,9 @@ router.post('/projects/:project/rolebindings', addUserToProject)
 router.delete('/projects/:project/rolebindings/:username/:role', removeUserRoleFromProject)
 router.delete('/projects/:project/rolebindings/:username', removeUserFromProject)
 
+router.get('/projects/:project/machinesets', getMachineSets)
+router.post('/projects/:project/machinesets', createMachineSet)
+
 async function createProject(req, res, next) {
     const {project, username} = req.body
 
@@ -154,6 +157,47 @@ async function removeUserFromProject(req, res, next) {
         }
 
         await res.json(await utils.getRoleBindings(projectName))
+    } catch (e) {
+        next(e)
+    }
+}
+
+async function getMachineSets(req, res, next) {
+    const namespace = req.params['project']
+    try {
+        await res.json((await utils.getMachineSets(namespace)).items)
+    } catch (e) {
+        next(e)
+    }
+}
+
+async function createMachineSet(req, res, next) {
+    const namespace = req.params['project']
+    const {
+        name,
+        region,
+        replicas,
+        instanceType,
+        instances,
+        instanceSize,
+        billingModel,
+        maxPrice
+    } = req.body
+
+    try {
+        await res.json(
+            await utils.createMachineSet(
+                namespace,
+                name,
+                region,
+                replicas,
+                instanceType,
+                instances,
+                instanceSize,
+                billingModel,
+                maxPrice,
+            )
+        )
     } catch (e) {
         next(e)
     }
