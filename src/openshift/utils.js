@@ -5,7 +5,10 @@ const logger = require('../logger')
 const token = config.OPENSHIFT_TOKEN
 const axiosInstance = axios.create({
     baseURL: config.OPENSHIFT_URL,
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    httpsAgent: new https.Agent({
+        rejectUnauthorized: config.INSECURE_REQUESTS !== 'true',
+    }),
 })
 
 async function getProject(projectName) {

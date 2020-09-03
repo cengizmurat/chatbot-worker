@@ -11,6 +11,7 @@ const variables = [
 // Optional variables and their default values
 const optionalVariables = {
   'PORT': '3000',
+  'INSECURE_REQUESTS': 'false',
   'OPENSHIFT_TOKEN': undefined,
   'IAMAAS_URL': undefined,
   'CLIENT_ID': undefined,
