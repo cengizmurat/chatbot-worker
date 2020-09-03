@@ -16,6 +16,9 @@ function log(message, level = infoLevel) {
             message = message.map(m => typeof m === 'string' || m instanceof String ? m : JSON.stringify(m))
             message = message.join('\n')
         }
+        if (message.toJSON !== undefined) {
+            message = message.toJSON()
+        }
         if (!(typeof message === 'string' || message instanceof String)) {
             message = JSON.stringify(message)
         }

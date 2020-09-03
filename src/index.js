@@ -101,7 +101,6 @@ function logResponseBody(req, res) {
 }
 
 async function handleError(err, req, res, next) {
-    console.error(err)
     logger.log(err, 'ERROR')
     const response = err.response
     if (response && response.data) {
