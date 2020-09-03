@@ -20,6 +20,7 @@ function log(message, level = infoLevel) {
             message = message.toJSON()
         }
         if (!(typeof message === 'string' || message instanceof String)) {
+            console.log(message)
             message = JSON.stringify(message)
         }
         message = `[${level}] ${message}`
