@@ -20,12 +20,24 @@ function log(message, level = infoLevel) {
             message = message.toJSON()
         }
         if (!(typeof message === 'string' || message instanceof String)) {
-            console.log(message)
-            message = JSON.stringify(message)
+            message = JSON.stringify(message, getCircularReplacer())
         }
         message = `[${level}] ${message}`
 
         level >= error ? console.error(message) : console.log(message)
+    }
+}
+
+const getCircularReplacer = () => {
+    const seen = new WeakSet();
+    return (key, value) => {
+        if (typeof value === "object" && value !== null) {
+            if (seen.has(value)) {
+                return
+            }
+            seen.add(value)
+        }
+        return value
     }
 }
 
