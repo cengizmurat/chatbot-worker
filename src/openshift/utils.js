@@ -30,11 +30,19 @@ async function deleteProject(projectName) {
 
 async function createProjectRequest(projectName) {
     const url = `/apis/project.openshift.io/v1/projectrequests`
+    /*
+    const defaultNodeSelectors = {
+        "machine.openshift.io/cluster-api-cluster": projectName,
+    }
+    */
     const body = {
         kind: "ProjectRequest",
         apiVersion: "project.openshift.io/v1",
         metadata: {
             name: projectName,
+            annotations: {
+                //"openshift.io/node-selector": Object.entries(defaultNodeSelectors).map(entry => `${entry[0]}=${entry[1]}`).join(','),
+            },
         }
     }
     logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -43,7 +51,7 @@ async function createProjectRequest(projectName) {
     return response.data
 }
 
-async function updateProjectAnnotations(project, username) {
+async function updateProjectAnnotations(project, username, taintTolerations) {
     const url = `/api/v1/namespaces/${project.metadata.name}`
     const body = {
         kind: "Namespace",
@@ -51,10 +59,14 @@ async function updateProjectAnnotations(project, username) {
         metadata: {
             name: project.metadata.name,
             annotations: {
+                "cip-allowed-tolerations-keys": taintTolerations.length > 0 ? taintTolerations.join(',') : undefined,
                 "openshift.io/requester": username,
                 "openshift.io/description": project.metadata.annotations['openshift.io/description'],
                 "openshift.io/display-name": project.metadata.annotations['openshift.io/display-name']
-            }
+            },
+            "labels": {
+                "redhat-cop.github.com/gatekeeper-active": "true",
+            },
         }
     }
     logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -305,6 +317,13 @@ async function createMachineSet(namespace, name, region, replicas, instanceType,
             maxPrice: maxPrice,
         }
     }
+    const taints = [
+        {
+            effect: "NoSchedule",
+            key: "reserved",
+            value: instanceType,
+        }
+    ]
     const templateSpec = {
         metadata: {
             labels: {
@@ -312,6 +331,7 @@ async function createMachineSet(namespace, name, region, replicas, instanceType,
             }
         },
         providerSpec: providerSpec,
+        taints: taints,
     }
     const template = {
         metadata: {

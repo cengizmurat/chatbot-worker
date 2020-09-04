@@ -20,7 +20,7 @@ router.get('/projects/:project/machinesets', getMachineSets)
 router.post('/projects/:project/machinesets', createMachineSet)
 
 async function createProject(req, res, next) {
-    const {project, username} = req.body
+    const {project, username, taintTolerations = []} = req.body
 
     if (project === undefined) {
         next(new Error('Missing parameter "project"'))
@@ -28,7 +28,7 @@ async function createProject(req, res, next) {
         next(new Error('Missing parameter "username"'))
     } else try {
         const projectObj = await utils.createProjectRequest(project)
-        await utils.updateProjectAnnotations(projectObj, username)
+        await utils.updateProjectAnnotations(projectObj, username, taintTolerations)
         const projectName = projectObj.metadata.name
         await utils.updateProjectQuotas(projectName, 'small') // default project quota size
         await utils.addUserToRolebinding(projectName, 'subadmin', username)
