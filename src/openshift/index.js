@@ -27,6 +27,23 @@ async function createProject(req, res, next) {
     } else if (username === undefined) {
         next(new Error('Missing parameter "username"'))
     } else try {
+        const machineSetNamespace = 'openshift-machine-api'
+        const machineSetRegion = 'eu-west-1'
+        const machineSetReplicas = 1
+        const machineSetSize = 'c5.xlarge'
+        const machineSetBillingModel = 'ondemand'
+        for (const toleration of taintTolerations) {
+            await utils.createMachineSet(
+                machineSetNamespace,
+                project,
+                machineSetRegion,
+                machineSetReplicas,
+                toleration,
+                {},
+                machineSetSize,
+                machineSetBillingModel
+            )
+        }
         const projectObj = await utils.createProjectRequest(project)
         await utils.updateProjectAnnotations(projectObj, username, taintTolerations)
         const projectName = projectObj.metadata.name
