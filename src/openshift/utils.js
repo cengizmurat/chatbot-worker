@@ -319,9 +319,9 @@ async function createMachineSet(namespace, name, region, replicas, instanceType,
     }
     const taints = [
         {
-            effect: "NoSchedule",
-            key: "reserved",
-            value: instanceType,
+            effect: "NoSchedule", // NoExecute
+            key: instanceType,
+            value: "",
         }
     ]
     const templateSpec = {
