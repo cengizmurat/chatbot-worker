@@ -311,7 +311,10 @@ async function createMachineSet(namespace, name, region, replicas, instanceType,
             },
             credentialsSecret: {
                 name: "aws-cloud-credentials",
-            }
+            },
+            ami: {
+                id: "ami-024bedcf934548fb4",
+            },
         }
     }
     if (instanceType.indexOf('spot') > -1) {
