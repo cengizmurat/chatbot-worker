@@ -313,7 +313,10 @@ async function createMachineSet(namespace, name, region, replicas, instanceType,
                 name: "aws-cloud-credentials",
             },
             ami: {
-                id: "ami-024bedcf934548fb4",
+                id: config.MACHINESET_AMI_ID,
+            },
+            subnet: {
+                id: config.MACHINESET_SUBNET_ID,
             },
         }
     }

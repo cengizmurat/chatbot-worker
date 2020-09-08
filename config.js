@@ -26,6 +26,8 @@ const optionalVariables = {
   'GITLAB_TOKEN': undefined,
   'PROXY_HOST': undefined,
   'PROXY_PORT': undefined,
+  'MACHINESET_SUBNET_ID': undefined,
+  'MACHINESET_AMI_ID': undefined,
   'LOG': 'INFO',
 }
 
