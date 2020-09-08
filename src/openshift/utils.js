@@ -309,6 +309,9 @@ async function createMachineSet(namespace, name, region, replicas, instanceType,
                 //availabilityZone: "eu-west-1b",
                 region: region,
             },
+            credentialsSecret: {
+                name: "aws-cloud-credentials",
+            }
         }
     }
     if (instanceType.indexOf('spot') > -1) {
