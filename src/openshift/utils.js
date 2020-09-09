@@ -286,9 +286,21 @@ async function getMachineSets(namespace) {
     return response.data
 }
 
-async function createMachineSet(namespace, name, region, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
+async function getInfrastructureInfo(infrastructureName) {
+    const url = `/apis/config.openshift.io/v1/infrastructures/${infrastructureName}`
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(url)
+    return response.data
+}
+
+async function createMachineSet(namespace, name, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
+    const infrastructure = await getInfrastructureInfo('cluster')
+    const infrastructureName = infrastructure.status.infrastructureName
+    const region = infrastructure.status.platformStatus.aws.region
+
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
-    const fullName = `${name}-${instanceType}-${region}`
+    const fullName = `${infrastructureName}-${name}-${instanceType}-${region}`
     const metadata = {
         name: fullName,
         //namespace: namespace,
@@ -318,6 +330,12 @@ async function createMachineSet(namespace, name, region, replicas, instanceType,
             subnet: {
                 id: config.MACHINESET_SUBNET_ID,
             },
+            tags: [
+                {
+                    name: `kubernetes.io/cluster/${infrastructureName}`,
+                    value: 'owned',
+                },
+            ],
         }
     }
     if (instanceType.indexOf('spot') > -1) {

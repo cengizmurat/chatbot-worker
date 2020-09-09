@@ -28,7 +28,6 @@ async function createProject(req, res, next) {
         next(new Error('Missing parameter "username"'))
     } else try {
         const machineSetNamespace = 'openshift-machine-api'
-        const machineSetRegion = 'eu-west-1'
         const machineSetReplicas = 1
         const machineSetSize = 'c5.xlarge'
         const machineSetBillingModel = 'ondemand'
@@ -36,7 +35,6 @@ async function createProject(req, res, next) {
             await utils.createMachineSet(
                 machineSetNamespace,
                 project,
-                machineSetRegion,
                 machineSetReplicas,
                 toleration,
                 {},
