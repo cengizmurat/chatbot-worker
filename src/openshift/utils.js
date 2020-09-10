@@ -450,16 +450,19 @@ async function patchMachineSet(namespace, name, spec) {
         metadata: metadata,
         spec: spec,
     }
-    logger.log(`PATCH ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const patchHeaders = Object.assign({}, globalHeaders)
     patchHeaders['Content-Type'] = "application/merge-patch+json"
 
-    const response = await axiosInstance.patch(url, body,
+    logger.log(`PATCH ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    const response = await axios.patch(config.OPENSHIFT_URL + url, body,
         {
             headers: {
                 patchHeaders,
             },
+            httpsAgent: new https.Agent({
+                rejectUnauthorized: config.INSECURE_REQUESTS !== 'true',
+            }),
         },
     )
     return response.data
