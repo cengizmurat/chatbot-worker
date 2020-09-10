@@ -303,6 +303,7 @@ async function createPatchedMachineSet(namespace, projectName, replicas, instanc
 
     const machineSet = await createMachineSet(
         infrastructureName,
+        region,
         namespace,
         projectName,
         fullName,
@@ -335,7 +336,7 @@ async function createPatchedMachineSet(namespace, projectName, replicas, instanc
     return await patchMachineSet(namespace, machineSet.metadata.name, newSpec)
 }
 
-async function createMachineSet(clusterName, namespace, projectName, name, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
+async function createMachineSet(clusterName, region, namespace, projectName, name, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
     const metadata = {
         name: name,
