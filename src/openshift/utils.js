@@ -4,9 +4,10 @@ const config = require('../../config.js')
 const logger = require('../logger')
 
 const token = config.OPENSHIFT_TOKEN
+const globalHeaders = { Authorization: `Bearer ${token}` }
 const axiosInstance = axios.create({
     baseURL: config.OPENSHIFT_URL,
-    headers: { Authorization: `Bearer ${token}` },
+    headers: globalHeaders,
     httpsAgent: new https.Agent({
         rejectUnauthorized: config.INSECURE_REQUESTS !== 'true',
     }),
@@ -288,7 +289,7 @@ async function getMachineSets(namespace) {
 
 async function getInfrastructureInfo(infrastructureName) {
     const url = `/apis/config.openshift.io/v1/infrastructures/${infrastructureName}`
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.get(url)
     return response.data
@@ -438,7 +439,7 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
 }
 
 async function patchMachineSet(namespace, name, spec) {
-    const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
+    const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets/${name}`
     const metadata = {
         name: name,
     }
@@ -449,14 +450,17 @@ async function patchMachineSet(namespace, name, spec) {
         metadata: metadata,
         spec: spec,
     }
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`PATCH ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const patchHeaders = Object.assign({}, globalHeaders)
+    patchHeaders['Content-Type'] = "application/merge-patch+json"
 
     const response = await axiosInstance.patch(url, body,
         {
             headers: {
-
-            }
-        }
+                patchHeaders,
+            },
+        },
     )
     return response.data
 }
