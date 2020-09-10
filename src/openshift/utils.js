@@ -299,7 +299,7 @@ async function createPatchedMachineSet(namespace, projectName, replicas, instanc
     const infrastructureName = infrastructure.status.infrastructureName
     const region = infrastructure.status.platformStatus.aws.region
 
-    const fullName = `${infrastructureName}-${projectName}-${instanceType}-${region}`
+    const fullName = `${infrastructureName}-dw-${"tempgroup"}-${instanceType}-${region}`
 
     const machineSet = await createMachineSet(
         infrastructureName,
