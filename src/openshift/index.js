@@ -32,14 +32,14 @@ async function createProject(req, res, next) {
         const machineSetSize = 'c5.xlarge'
         const machineSetBillingModel = 'ondemand'
         for (const toleration of taintTolerations) {
-            await utils.createMachineSet(
+            await utils.createPatchedMachineSet(
                 machineSetNamespace,
                 project,
                 machineSetReplicas,
                 toleration,
                 {},
                 machineSetSize,
-                machineSetBillingModel
+                machineSetBillingModel,
             )
         }
         const projectObj = await utils.createProjectRequest(project)

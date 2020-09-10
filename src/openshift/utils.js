@@ -294,18 +294,54 @@ async function getInfrastructureInfo(infrastructureName) {
     return response.data
 }
 
-async function createMachineSet(namespace, name, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
+async function createPatchedMachineSet(namespace, projectName, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
     const infrastructure = await getInfrastructureInfo('cluster')
     const infrastructureName = infrastructure.status.infrastructureName
     const region = infrastructure.status.platformStatus.aws.region
 
+    const fullName = `${infrastructureName}-${projectName}-${instanceType}-${region}`
+
+    const machineSet = await createMachineSet(
+        infrastructureName,
+        namespace,
+        projectName,
+        fullName,
+        0,
+        instanceType,
+        instances,
+        instanceSize,
+        billingModel,
+        maxPrice
+    )
+
+    const newSpec = {
+        replicas: replicas,
+        template: {
+            spec: {
+                providerSpec: {
+                    value: {
+                        tags: [
+                            {
+                                name: `kubernetes.io/cluster/${infrastructureName}`,
+                                value: "owned",
+                            },
+                        ],
+                    },
+                },
+            },
+        },
+    }
+
+    return await patchMachineSet(namespace, machineSet.metadata.name, newSpec)
+}
+
+async function createMachineSet(clusterName, namespace, projectName, name, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
-    const fullName = `${infrastructureName}-${name}-${instanceType}-${region}`
     const metadata = {
-        name: fullName,
+        name: name,
         //namespace: namespace,
         labels: {
-            "machine.openshift.io/cluster-api-cluster": name,
+            "machine.openshift.io/cluster-api-cluster": projectName,
             "node-role.kubernetes.io/spot": "",
             region: region,
             type: instanceType,
@@ -332,7 +368,7 @@ async function createMachineSet(namespace, name, replicas, instanceType, instanc
             },
             tags: [
                 {
-                    name: `kubernetes.io/cluster/${infrastructureName}`,
+                    name: `kubernetes.io/cluster/${clusterName}`,
                     value: 'owned',
                 },
             ],
@@ -363,8 +399,8 @@ async function createMachineSet(namespace, name, replicas, instanceType, instanc
     const template = {
         metadata: {
             labels: {
-                "machine.openshift.io/cluster-api-cluster": name,
-                "machine.openshift.io/cluster-api-machineset": fullName,
+                "machine.openshift.io/cluster-api-cluster": projectName,
+                "machine.openshift.io/cluster-api-machineset": name,
                 "node-role.kubernetes.io/worker": ""
             }
         },
@@ -378,15 +414,16 @@ async function createMachineSet(namespace, name, replicas, instanceType, instanc
         template.metadata.labels['machine.openshift.io/cluster-api-machine-type'] = 'worker'
     }
     const spec = {
-        replicas: replicas,
+        replicas: 0,
         selector: {
             matchLabels: {
-                "machine.openshift.io/cluster-api-cluster": name,
-                "machine.openshift.io/cluster-api-machineset": fullName,
+                "machine.openshift.io/cluster-api-cluster": projectName,
+                "machine.openshift.io/cluster-api-machineset": name,
             }
         },
         template: template,
     }
+
     const body = {
         apiVersion: "machine.openshift.io/v1beta1",
         kind: "MachineSet",
@@ -396,6 +433,30 @@ async function createMachineSet(namespace, name, replicas, instanceType, instanc
     logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
+    return response.data
+}
+
+async function patchMachineSet(namespace, name, spec) {
+    const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
+    const metadata = {
+        name: name,
+    }
+
+    const body = {
+        apiVersion: "machine.openshift.io/v1beta1",
+        kind: "MachineSet",
+        metadata: metadata,
+        spec: spec,
+    }
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.patch(url, body,
+        {
+            headers: {
+
+            }
+        }
+    )
     return response.data
 }
 
@@ -411,5 +472,5 @@ module.exports = {
     getRoleBindings,
     addUserToRolebinding,
     getMachineSets,
-    createMachineSet,
+    createPatchedMachineSet,
 }
