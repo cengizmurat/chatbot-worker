@@ -4,13 +4,16 @@ const config = require('../../config.js')
 const logger = require('../logger')
 
 const token = config.OPENSHIFT_TOKEN
-const globalHeaders = { Authorization: `Bearer ${token}` }
-const axiosInstance = axios.create({
-    baseURL: config.OPENSHIFT_URL,
-    headers: globalHeaders,
+const globalConfig = {
+    headers: { Authorization: `Bearer ${token}` },
     httpsAgent: new https.Agent({
         rejectUnauthorized: config.INSECURE_REQUESTS !== 'true',
     }),
+}
+const axiosInstance = axios.create({
+    baseURL: config.OPENSHIFT_URL,
+    headers: globalConfig.headers,
+    httpsAgent: globalConfig.httpsAgent,
 })
 
 async function getProject(projectName) {
@@ -451,20 +454,11 @@ async function patchMachineSet(namespace, name, spec) {
         spec: spec,
     }
 
-    const patchHeaders = Object.assign({}, globalHeaders)
-    patchHeaders['Content-Type'] = "application/merge-patch+json"
+    const patchConfig = Object.assign({}, globalConfig)
+    patchConfig.headers['Content-Type'] = "application/merge-patch+json"
 
     logger.log(`PATCH ${config.OPENSHIFT_URL + url}`, 'TRACE')
-    const response = await axios.patch(config.OPENSHIFT_URL + url, body,
-        {
-            headers: {
-                patchHeaders,
-            },
-            httpsAgent: new https.Agent({
-                rejectUnauthorized: config.INSECURE_REQUESTS !== 'true',
-            }),
-        },
-    )
+    const response = await axios.patch(config.OPENSHIFT_URL + url, body, patchConfig)
     return response.data
 }
 
