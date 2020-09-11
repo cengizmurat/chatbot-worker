@@ -346,7 +346,7 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
         name: name,
         //namespace: namespace,
         labels: {
-            "machine.openshift.io/cluster-api-cluster": projectName,
+            "machine.openshift.io/cluster-api-cluster": clusterName,
             "node-role.kubernetes.io/spot": "",
             region: region,
             type: instanceType,
@@ -371,6 +371,18 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
             subnet: {
                 id: config.MACHINESET_SUBNET_ID,
             },
+            securityGroups: [
+                {
+                    filters: [
+                        {
+                            name: "tag:Name",
+                            values: [
+                                `${clusterName}-worker-sg`,
+                            ],
+                        },
+                    ],
+                },
+            ],
             tags: [
                 {
                     name: `kubernetes.io/cluster/${clusterName}`,
@@ -404,8 +416,10 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
     const template = {
         metadata: {
             labels: {
-                "machine.openshift.io/cluster-api-cluster": projectName,
+                "machine.openshift.io/cluster-api-cluster": clusterName,
                 "machine.openshift.io/cluster-api-machineset": name,
+                "machine.openshift.io/cluster-api-machine-role": projectName,
+                "machine.openshift.io/cluster-api-machine-type": projectName,
                 "node-role.kubernetes.io/worker": ""
             }
         },
@@ -422,7 +436,7 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
         replicas: 0,
         selector: {
             matchLabels: {
-                "machine.openshift.io/cluster-api-cluster": projectName,
+                "machine.openshift.io/cluster-api-cluster": clusterName,
                 "machine.openshift.io/cluster-api-machineset": name,
             }
         },
