@@ -303,14 +303,15 @@ async function createPatchedMachineSet(namespace, projectName, replicas, instanc
     const infrastructureName = infrastructure.status.infrastructureName
     const region = infrastructure.status.platformStatus.aws.region
 
-    const fullName = `${infrastructureName}-dw-${"tempgroup"}-${instanceType}-${region}`
+    const machineSetType = `dw-${"tempgroup"}-${instanceType}`
+    const fullName = `${infrastructureName}-${machineSetType}-${region}`
 
-    const machineSet = await createMachineSet(
+    return await createMachineSet(
         infrastructureName,
         region,
         namespace,
-        projectName,
         fullName,
+        machineSetType,
         0,
         instanceType,
         instances,
@@ -318,26 +319,6 @@ async function createPatchedMachineSet(namespace, projectName, replicas, instanc
         billingModel,
         maxPrice
     )
-
-    const newSpec = {
-        replicas: replicas,
-        template: {
-            spec: {
-                providerSpec: {
-                    value: {
-                        tags: [
-                            {
-                                name: `kubernetes.io/cluster/${infrastructureName}`,
-                                value: "owned",
-                            },
-                        ],
-                    },
-                },
-            },
-        },
-    }
-
-    return await patchMachineSet(namespace, machineSet.metadata.name, newSpec)
 }
 
 async function createMachineSet(clusterName, region, namespace, projectName, name, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
@@ -389,6 +370,13 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
                     value: 'owned',
                 },
             ],
+            deviceIndex: 0,
+            iamInstanceProfile: {
+                id: `${clusterName}-worker-profile`,
+            },
+            userDataSecret: {
+                name: "worker-user-data",
+            },
         }
     }
     if (instanceType.indexOf('spot') > -1) {
@@ -418,8 +406,8 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
             labels: {
                 "machine.openshift.io/cluster-api-cluster": clusterName,
                 "machine.openshift.io/cluster-api-machineset": name,
-                "machine.openshift.io/cluster-api-machine-role": projectName,
-                "machine.openshift.io/cluster-api-machine-type": projectName,
+                "machine.openshift.io/cluster-api-machine-role": instanceType,
+                "machine.openshift.io/cluster-api-machine-type": instanceType,
                 "node-role.kubernetes.io/worker": ""
             }
         },
@@ -433,7 +421,7 @@ async function createMachineSet(clusterName, region, namespace, projectName, nam
         template.metadata.labels['machine.openshift.io/cluster-api-machine-type'] = 'worker'
     }
     const spec = {
-        replicas: 0,
+        replicas: replicas,
         selector: {
             matchLabels: {
                 "machine.openshift.io/cluster-api-cluster": clusterName,
