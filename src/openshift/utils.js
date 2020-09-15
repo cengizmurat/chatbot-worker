@@ -16,6 +16,16 @@ const axiosInstance = axios.create({
     httpsAgent: globalConfig.httpsAgent,
 })
 
+async function getGroupsForUser(userName) {
+    const url = `/apis/user.openshift.io/v1/groups`
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    const response = await axiosInstance.get(url)
+
+    return response.data.items
+        .filter(group => group.users.indexOf(userName) !== -1)
+        .map(group => group.metadata.name)
+}
+
 async function getProject(projectName) {
     const url = `/apis/project.openshift.io/v1/projects/${projectName}`
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -298,30 +308,25 @@ async function getInfrastructureInfo(infrastructureName) {
     return response.data
 }
 
-async function createPatchedMachineSet(namespace, projectName, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
+async function createPatchedMachineSet(namespace, type, replicas, instanceSize, maxPrice = undefined) {
     const infrastructure = await getInfrastructureInfo('cluster')
     const infrastructureName = infrastructure.status.infrastructureName
     const region = infrastructure.status.platformStatus.aws.region
-
-    const machineSetType = `dw-${"tempgroup"}-${instanceType}`
-    const fullName = `${infrastructureName}-${machineSetType}-${region}`
+    const fullName = `${infrastructureName}-${type}-${region}`
 
     return await createMachineSet(
         infrastructureName,
         region,
         namespace,
         fullName,
-        machineSetType,
-        0,
-        instanceType,
-        instances,
+        type,
+        replicas,
         instanceSize,
-        billingModel,
-        maxPrice
+        maxPrice,
     )
 }
 
-async function createMachineSet(clusterName, region, namespace, projectName, name, replicas, instanceType, instances, instanceSize, billingModel, maxPrice = undefined) {
+async function createMachineSet(clusterName, region, namespace, name, instanceType, replicas, instanceSize, maxPrice = undefined) {
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets`
     const metadata = {
         name: name,
@@ -465,6 +470,7 @@ async function patchMachineSet(namespace, name, spec) {
 }
 
 module.exports = {
+    getGroupsForUser,
     getProject,
     deleteProject,
     createProjectRequest,

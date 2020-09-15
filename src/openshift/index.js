@@ -4,6 +4,8 @@ const utils = require('./utils')
 
 const router = express.Router()
 
+router.get('/groups', getGroups)
+
 router.post('/projects', createProject)
 router.get('/projects', getProjects)
 router.delete('/projects/:project', deleteProject)
@@ -19,35 +21,61 @@ router.delete('/projects/:project/rolebindings/:username', removeUserFromProject
 router.get('/projects/:project/machinesets', getMachineSets)
 router.post('/projects/:project/machinesets', createMachineSet)
 
+async function getGroups(req, res, next) {
+    const username = req.query['username']
+
+    try {
+        let groups = []
+        if (username) {
+            groups = await utils.getGroupsForUser(username)
+        }
+
+        await res.json(groups)
+    } catch (e) {
+        next(e)
+    }
+}
+
 async function createProject(req, res, next) {
-    const {project, username, taintTolerations = []} = req.body
+    const {project, username, machineSet} = req.body
 
     if (project === undefined) {
         next(new Error('Missing parameter "project"'))
     } else if (username === undefined) {
         next(new Error('Missing parameter "username"'))
+    } else if (machineSet === undefined) {
+        next(new Error('Missing parameter "machineSet"'))
     } else try {
-        const machineSetNamespace = 'openshift-machine-api'
-        const machineSetReplicas = 1
-        const machineSetSize = 'c5.xlarge'
-        const machineSetBillingModel = 'ondemand'
-        for (const toleration of taintTolerations) {
+        const {group, type, billing, replicas, size = 'c5.xlarge', maxPrice = 1} = machineSet
+        if (group === undefined) {
+            next(new Error('Missing parameter "group" in machineSet definition'))
+        } else if (type === undefined) {
+            next(new Error('Missing parameter "type" in machineSet definition'))
+        } else if (billing === undefined) {
+            next(new Error('Missing parameter "billing" in machineSet definition'))
+        } else if (replicas === undefined) {
+            next(new Error('Missing parameter "replicas" in machineSet definition'))
+        } else if (type !== 'gp' && type !== 'gpu') {
+            next(new Error('Parameter "type" in machineSet definition should be "gp" (general-purpose) or "gpu" (GPU)'))
+        } else if (billing !== 'od' && billing !== 'sp') {
+            next(new Error('Parameter "type" in machineSet definition should be "od" (on-demand) or "sp" (spot)'))
+        } else {
+            const machineSetNamespace = 'openshift-machine-api'
+            const machineSetType = `dw-${group}-${type}-${billing}`
             await utils.createPatchedMachineSet(
                 machineSetNamespace,
-                project,
-                machineSetReplicas,
-                toleration,
-                {},
-                machineSetSize,
-                machineSetBillingModel,
+                machineSetType,
+                replicas,
+                size,
+                maxPrice,
             )
+            const projectObj = await utils.createProjectRequest(project)
+            await utils.updateProjectAnnotations(projectObj, username, [machineSetType])
+            const projectName = projectObj.metadata.name
+            await utils.updateProjectQuotas(projectName, 'small') // default project quota size
+            await utils.addUserToRolebinding(projectName, 'subadmin', username)
+            await res.json(await utils.getProject(projectName))
         }
-        const projectObj = await utils.createProjectRequest(project)
-        await utils.updateProjectAnnotations(projectObj, username, taintTolerations)
-        const projectName = projectObj.metadata.name
-        await utils.updateProjectQuotas(projectName, 'small') // default project quota size
-        await utils.addUserToRolebinding(projectName, 'subadmin', username)
-        await res.json(await utils.getProject(projectName))
     } catch (e) {
         next(e)
     }
