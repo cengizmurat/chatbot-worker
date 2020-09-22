@@ -2,7 +2,9 @@ const express = require('express')
 
 const utils = require('../utils')
 
-const router = express.Router()
+const router = express.Router({
+    mergeParams: true,
+})
 
 router.post('/', createProject)
 router.get('/', getProjects)

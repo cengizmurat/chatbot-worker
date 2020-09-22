@@ -2,7 +2,9 @@ const express = require('express')
 
 const utils = require('../utils')
 
-const router = express.Router()
+const router = express.Router({
+    mergeParams: true,
+})
 
 router.get('/', getRoleBindings)
 router.post('/', addUserToProject)
@@ -19,6 +21,7 @@ async function getRoleBindings(req, res, next) {
 }
 
 async function addUserToProject(req, res, next) {
+    console.log(req.params)
     const projectName = req.params['project']
     const { role, username } = req.body
 
