@@ -325,24 +325,20 @@ async function createPatchedMachineSet(namespace, type, replicas, instanceSize, 
     let machineSet
     try {
         machineSet = await getMachineSet(namespace, fullName)
-    } catch (e1) {
-        if (e1.statusCode === 404) { // MachineSet not found
-            try {
-                machineSet = await createMachineSet(
-                    infrastructureName,
-                    region,
-                    namespace,
-                    fullName,
-                    type,
-                    replicas,
-                    instanceSize,
-                    maxPrice,
-                )
-            } catch (e2) {
-                next(e2)
-            }
+    } catch (e) {
+        if (e.statusCode === 404) { // MachineSet not found
+            machineSet = await createMachineSet(
+                infrastructureName,
+                region,
+                namespace,
+                fullName,
+                type,
+                replicas,
+                instanceSize,
+                maxPrice,
+            )
         } else {
-            next(e1)
+            throw e
         }
     }
 
