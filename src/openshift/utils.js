@@ -300,6 +300,14 @@ async function getMachineSets(namespace) {
     return response.data
 }
 
+async function getMachineSet(namespace, name) {
+    const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets/${name}`
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(url)
+    return response.data
+}
+
 async function getInfrastructureInfo(infrastructureName) {
     const url = `/apis/config.openshift.io/v1/infrastructures/${infrastructureName}`
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -314,16 +322,31 @@ async function createPatchedMachineSet(namespace, type, replicas, instanceSize, 
     const region = infrastructure.status.platformStatus.aws.region
     const fullName = `${infrastructureName}-${type}-${region}`
 
-    return await createMachineSet(
-        infrastructureName,
-        region,
-        namespace,
-        fullName,
-        type,
-        replicas,
-        instanceSize,
-        maxPrice,
-    )
+    let machineSet
+    try {
+        machineSet = await getMachineSet(namespace, fullName)
+    } catch (e1) {
+        if (e1.statusCode === 404) { // MachineSet not found
+            try {
+                machineSet = await createMachineSet(
+                    infrastructureName,
+                    region,
+                    namespace,
+                    fullName,
+                    type,
+                    replicas,
+                    instanceSize,
+                    maxPrice,
+                )
+            } catch (e2) {
+                next(e2)
+            }
+        } else {
+            next(e1)
+        }
+    }
+
+    return machineSet
 }
 
 async function createMachineSet(clusterName, region, namespace, name, instanceType, replicas, instanceSize, maxPrice = undefined) {
@@ -481,6 +504,7 @@ module.exports = {
     getRoleBinding,
     getRoleBindings,
     addUserToRolebinding,
+    getMachineSet,
     getMachineSets,
     createPatchedMachineSet,
 }
