@@ -12,7 +12,6 @@ router.delete('/:project', deleteProject)
 
 router.use('/:project/resourcequotas', require('./resourcequotas'))
 router.use('/:project/rolebindings', require('./rolebindings'))
-router.use('/:project/machinesets', require('./machinesets'))
 
 async function createProject(req, res, next) {
     const {project, username, machineSet} = req.body

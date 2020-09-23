@@ -308,6 +308,14 @@ async function getMachineSet(namespace, name) {
     return response.data
 }
 
+async function deleteMachineSet(namespace, name) {
+    const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets/${name}`
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.delete(url)
+    return response.data
+}
+
 async function getInfrastructureInfo(infrastructureName) {
     const url = `/apis/config.openshift.io/v1/infrastructures/${infrastructureName}`
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -342,7 +350,7 @@ async function createPatchedMachineSet(namespace, type, replicas, instanceSize, 
         }
     }
 
-    return machineSet
+    return machineSet.data
 }
 
 async function createMachineSet(clusterName, region, namespace, name, instanceType, replicas, instanceSize, maxPrice = undefined) {
@@ -502,5 +510,6 @@ module.exports = {
     addUserToRolebinding,
     getMachineSet,
     getMachineSets,
+    deleteMachineSet,
     createPatchedMachineSet,
 }
