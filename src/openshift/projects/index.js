@@ -39,12 +39,15 @@ async function createProject(req, res, next) {
             next(new Error('Parameter "type" in machineSet definition should be "gp" (general-purpose) or "gpu" (GPU)'))
         } else if (billing !== 'od' && billing !== 'sp') {
             next(new Error('Parameter "type" in machineSet definition should be "od" (on-demand) or "sp" (spot)'))
+        } else if (!isNumeric(replicas)) {
+            next(new Error('Parameter "replicas" in machineSet definition should be a positive integer'))
         } else {
-            const machineSetType = `dw-${group}-${type}-${billing}`
             await utils.createPatchedMachineSet(
                 namespace,
-                machineSetType,
-                replicas,
+                group,
+                type,
+                billing,
+                parseInt(replicas),
                 size,
                 maxPrice,
             )
@@ -94,6 +97,11 @@ async function deleteProject(req, res, next) {
     } catch (e) {
         next(e)
     }
+}
+
+function isNumeric(value) {
+    value = String(value)
+    return /^(\d)+$/.test(value)
 }
 
 module.exports = router

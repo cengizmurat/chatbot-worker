@@ -13,8 +13,10 @@ router.delete('/:name', deleteMachineSet)
 
 async function getMachineSets(req, res, next) {
     const namespace = 'openshift-machine-api'
+    const group = req.query['group']
+
     try {
-        await res.json((await utils.getMachineSets(namespace)).items)
+        await res.json((await utils.getMachineSets(namespace, group)).items)
     } catch (e) {
         next(e)
     }
@@ -34,26 +36,27 @@ async function createMachineSet(req, res, next) {
     const {namespace, group, type, billing, replicas, size = 'c5.xlarge', maxPrice = 1} = req.body
 
     if (namespace === undefined) {
-        next(new Error('Missing parameter "namespace" in machineSet definition'))
+        next(new Error('Missing parameter "namespace"'))
     } else if (group === undefined) {
-        next(new Error('Missing parameter "group" in machineSet definition'))
+        next(new Error('Missing parameter "group"'))
     } else if (type === undefined) {
-        next(new Error('Missing parameter "type" in machineSet definition'))
+        next(new Error('Missing parameter "type"'))
     } else if (billing === undefined) {
-        next(new Error('Missing parameter "billing" in machineSet definition'))
+        next(new Error('Missing parameter "billing"'))
     } else if (replicas === undefined) {
-        next(new Error('Missing parameter "replicas" in machineSet definition'))
+        next(new Error('Missing parameter "replicas"'))
     } else if (type !== 'gp' && type !== 'gpu') {
-        next(new Error('Parameter "type" in machineSet definition should be "gp" (general-purpose) or "gpu" (GPU)'))
+        next(new Error('Parameter "type" should be "gp" (general-purpose) or "gpu" (GPU)'))
     } else if (billing !== 'od' && billing !== 'sp') {
-        next(new Error('Parameter "type" in machineSet definition should be "od" (on-demand) or "sp" (spot)'))
+        next(new Error('Parameter "type" should be "od" (on-demand) or "sp" (spot)'))
     } else if (!isNumeric(replicas)) {
-        next(new Error('Parameter "replicas" in machineSet definition should be a positive integer'))
+        next(new Error('Parameter "replicas" should be a positive integer'))
     } else {
-        const machineSetType = `dw-${group}-${type}-${billing}`
         await res.json(await utils.createPatchedMachineSet(
             namespace,
-            machineSetType,
+            group,
+            type,
+            billing,
             parseInt(replicas),
             size,
             maxPrice,
