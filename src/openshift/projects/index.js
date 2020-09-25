@@ -23,8 +23,11 @@ async function createProject(req, res, next) {
     } else if (machineSet === undefined) {
         next(new Error('Missing parameter "machineSet"'))
     } else try {
-        const {group, type, billing, replicas, size = 'c5.xlarge', maxPrice = 1} = machineSet
-        if (group === undefined) {
+        const {namespace, group, type, billing, replicas, size = 'c5.xlarge', maxPrice = 1} = machineSet
+        
+        if (namespace === undefined) {
+            next(new Error('Missing parameter "namespace" in machineSet definition'))
+        } else if (group === undefined) {
             next(new Error('Missing parameter "group" in machineSet definition'))
         } else if (type === undefined) {
             next(new Error('Missing parameter "type" in machineSet definition'))
@@ -37,10 +40,9 @@ async function createProject(req, res, next) {
         } else if (billing !== 'od' && billing !== 'sp') {
             next(new Error('Parameter "type" in machineSet definition should be "od" (on-demand) or "sp" (spot)'))
         } else {
-            const machineSetNamespace = 'openshift-machine-api'
             const machineSetType = `dw-${group}-${type}-${billing}`
             await utils.createPatchedMachineSet(
-                machineSetNamespace,
+                namespace,
                 machineSetType,
                 replicas,
                 size,

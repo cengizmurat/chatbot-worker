@@ -350,7 +350,7 @@ async function createPatchedMachineSet(namespace, type, replicas, instanceSize, 
         }
     }
 
-    return machineSet.data
+    return machineSet
 }
 
 async function createMachineSet(clusterName, region, namespace, name, instanceType, replicas, instanceSize, maxPrice = undefined) {

@@ -31,8 +31,11 @@ async function getMachineSet(req, res, next) {
 }
 
 async function createMachineSet(req, res, next) {
-    const {group, type, billing, replicas, size = 'c5.xlarge', maxPrice = 1} = req.body
-    if (group === undefined) {
+    const {namespace, group, type, billing, replicas, size = 'c5.xlarge', maxPrice = 1} = req.body
+
+    if (namespace === undefined) {
+        next(new Error('Missing parameter "namespace" in machineSet definition'))
+    } else if (group === undefined) {
         next(new Error('Missing parameter "group" in machineSet definition'))
     } else if (type === undefined) {
         next(new Error('Missing parameter "type" in machineSet definition'))
@@ -47,10 +50,9 @@ async function createMachineSet(req, res, next) {
     } else if (!isNumeric(replicas)) {
         next(new Error('Parameter "replicas" in machineSet definition should be a positive integer'))
     } else {
-        const machineSetNamespace = 'openshift-machine-api'
         const machineSetType = `dw-${group}-${type}-${billing}`
-        await res.send(await utils.createPatchedMachineSet(
-            machineSetNamespace,
+        await res.json(await utils.createPatchedMachineSet(
+            namespace,
             machineSetType,
             parseInt(replicas),
             size,
