@@ -49,7 +49,7 @@ async function createMachineSet(req, res, next) {
     } else {
         const machineSetNamespace = 'openshift-machine-api'
         const machineSetType = `dw-${group}-${type}-${billing}`
-        await res.json(await utils.createPatchedMachineSet(
+        await res.send(await utils.createPatchedMachineSet(
             machineSetNamespace,
             machineSetType,
             parseInt(replicas),
