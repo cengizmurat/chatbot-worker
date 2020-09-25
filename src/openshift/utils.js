@@ -26,6 +26,30 @@ async function getGroupsForUser(userName) {
         .map(group => group.metadata.name)
 }
 
+async function createGroup(name, users) {
+    const url = `/apis/user.openshift.io/v1/groups`
+    const body = {
+        kind: "Group",
+        apiVersion: "user.openshift.io/v1",
+        metadata: {
+            name: "group-test",
+            labels: {
+                "openshift.io/ldap.host": "ldap.cip-ldap-common.svc.cluster.local",
+            },
+            annotations: {
+                "openshift.io/ldap.uid": "cn=group-test,ou=groups,ou=dev,ou=iam,dc=sgcip,dc=com",
+                "openshift.io/ldap.url": "ldap.cip-ldap-common.svc.cluster.local:389",
+            },
+        },
+        users: users,
+    }
+    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.post(url, body)
+
+    return response.data
+}
+
 async function getProject(projectName) {
     const url = `/apis/project.openshift.io/v1/projects/${projectName}`
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -503,6 +527,7 @@ async function patchMachineSet(namespace, name, spec) {
 
 module.exports = {
     getGroupsForUser,
+    createGroup,
     getProject,
     deleteProject,
     createProjectRequest,
