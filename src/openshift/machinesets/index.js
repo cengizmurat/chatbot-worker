@@ -44,13 +44,15 @@ async function createMachineSet(req, res, next) {
         next(new Error('Parameter "type" in machineSet definition should be "gp" (general-purpose) or "gpu" (GPU)'))
     } else if (billing !== 'od' && billing !== 'sp') {
         next(new Error('Parameter "type" in machineSet definition should be "od" (on-demand) or "sp" (spot)'))
+    } else if (!isNumeric(replicas)) {
+        next(new Error('Parameter "replicas" in machineSet definition should be a positive integer'))
     } else {
         const machineSetNamespace = 'openshift-machine-api'
         const machineSetType = `dw-${group}-${type}-${billing}`
         await res.json(await utils.createPatchedMachineSet(
             machineSetNamespace,
             machineSetType,
-            replicas,
+            parseInt(replicas),
             size,
             maxPrice,
         ))
@@ -65,6 +67,11 @@ async function deleteMachineSet(req, res, next) {
     } catch (e) {
         next(e)
     }
+}
+
+function isNumeric(value) {
+    value = String(value)
+    return /^(\d)+$/.test(value)
 }
 
 module.exports = router
