@@ -9,6 +9,8 @@ const router = express.Router({
 router.get('/', getGroups)
 router.post('/', createGroup)
 
+router.get('/:name', getGroup)
+
 async function getGroups(req, res, next) {
     const username = req.query['username']
 
@@ -33,6 +35,15 @@ async function createGroup(req, res, next) {
         next(new Error('Parameters "users" should be an array of username'))
     } else {
         await res.json(await utils.createGroup(name, users))
+    }
+}
+
+async function getGroup(req, res, next) {
+    const name = req.params['name']
+    try {
+        await res.json(await utils.getGroup(name))
+    } catch (e) {
+        next(e)
     }
 }
 

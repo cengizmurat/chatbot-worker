@@ -16,6 +16,14 @@ const axiosInstance = axios.create({
     httpsAgent: globalConfig.httpsAgent,
 })
 
+async function getGroup(name) {
+    const url = `/apis/user.openshift.io/v1/groups/${name}`
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    const response = await axiosInstance.get(url)
+
+    return response.data
+}
+
 async function getGroupsForUser(userName) {
     const url = `/apis/user.openshift.io/v1/groups`
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -526,6 +534,7 @@ async function patchMachineSet(namespace, name, spec) {
 }
 
 module.exports = {
+    getGroup,
     getGroupsForUser,
     createGroup,
     getProject,
