@@ -52,7 +52,7 @@ async function createProject(req, res, next) {
                 maxPrice,
             )
             const projectObj = await utils.createProjectRequest(project)
-            await utils.updateProjectAnnotations(projectObj, username, [machineSetType])
+            await utils.updateProjectAnnotations(projectObj, username, [`dw-${group}-${type}-${billing}`])
             const projectName = projectObj.metadata.name
             await utils.updateProjectQuotas(projectName, 'small') // default project quota size
             await utils.addUserToRolebinding(projectName, 'subadmin', username)
