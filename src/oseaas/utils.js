@@ -20,7 +20,7 @@ async function renewToken() {
     }
 
     const url = `${config.IAMAAS_URL}/v2/oauth2/token`
-    logger.log(`POST ${url}`, 'TRACE')
+    logger.log(`POST ${url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axios.post(url, body, {
         headers: {
@@ -54,7 +54,7 @@ async function createProject(clusterName, projectName) {
     }
 
     const url = `/v1/clusters/${clusterName}/projects`
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const headers = await getHeaders()
     const response = await axiosInstance.post(url, body, headers)

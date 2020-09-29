@@ -88,7 +88,7 @@ async function getGroupId(groupName) {
         path: groupName,
         parent_id: gitlabImportsGroupId,
     }
-    logger.log(`POST ${postUrl}`, 'TRACE')
+    logger.log(`POST ${postUrl} ${JSON.stringify(body)}`, 'TRACE')
     const newGroup = await gitlabInstance.post(postUrl, body)
     return newGroup.data.id
 }
@@ -117,7 +117,7 @@ async function createProjectInGroup(groupId, projectName, importUrl) {
         only_mirror_protected_branches: false,
     }
 
-    logger.log(`POST ${url}`, 'TRACE')
+    logger.log(url}`, 'TRACE')
     const project = await gitlabInstance.post(url, body)
     return project.data
 }

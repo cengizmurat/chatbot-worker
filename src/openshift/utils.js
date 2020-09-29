@@ -51,7 +51,7 @@ async function createGroup(name, users) {
         },
         users: users,
     }
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
 
@@ -68,7 +68,7 @@ async function deleteGroup(name) {
 
 async function updateGroup(name, body) {
     const url = `/apis/user.openshift.io/v1/groups/${name}`
-    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.put(url, body)
     return response.data
@@ -107,7 +107,7 @@ async function createProjectRequest(projectName) {
             },
         }
     }
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
     return response.data
@@ -131,7 +131,7 @@ async function updateProjectAnnotations(project, username, taintTolerations) {
             },
         }
     }
-    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.put(url, body)
     return response.data
@@ -150,7 +150,7 @@ async function createResourceQuotas(projectName, quotaSpecs) {
     quotaSpecs.kind = "ResourceQuota"
     quotaSpecs.apiVersion = "v1"
 
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.post(url, quotaSpecs)
     return response.data
@@ -160,7 +160,7 @@ async function updateResourceQuotas(projectName, quotaSpecs) {
     const url = `/api/v1/namespaces/${projectName}/resourcequotas/${quotaSpecs.metadata.name}`
     quotaSpecs.kind = "ResourceQuota"
     quotaSpecs.apiVersion = "v1"
-    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.put(url, quotaSpecs)
     return response.data
@@ -285,7 +285,7 @@ async function createRoleBinding(roleName, projectName) {
             name: roleName
         }
     }
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
     const role = response.data
@@ -296,7 +296,7 @@ async function createRoleBinding(roleName, projectName) {
 
 async function updateRoleBinding(roleBinding, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings/${roleBinding.metadata.name}`
-    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.put(url, roleBinding)
     return response.data
@@ -522,7 +522,7 @@ async function createMachineSet(clusterName, region, namespace, group, name, ins
         metadata: metadata,
         spec: spec,
     }
-    logger.log(`POST ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
 
     const response = await axiosInstance.post(url, body)
     return response.data
@@ -544,7 +544,7 @@ async function patchMachineSet(namespace, name, spec) {
     const patchConfig = Object.assign({}, globalConfig)
     patchConfig.headers['Content-Type'] = "application/merge-patch+json"
 
-    logger.log(`PATCH ${config.OPENSHIFT_URL + url}`, 'TRACE')
+    logger.log(`PATCH ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
     const response = await axios.patch(config.OPENSHIFT_URL + url, body, patchConfig)
     return response.data
 }

@@ -36,7 +36,7 @@ async function postAll(req, res, next) {
     try {
         const url = handleGraphQLurl(baseUrl + req.params['0'])
         const body = req.body
-        logger.log(`POST ${url}`, 'TRACE')
+        logger.log(`POST ${url} ${JSON.stringify(body)}`, 'TRACE')
 
         const response = await githubInstance.post(url, body)
         await res.json(response.data)
@@ -49,7 +49,7 @@ async function putAll(req, res, next) {
     try {
         const url = baseUrl + req.params['0']
         const body = req.body
-        logger.log(`PUT ${url}`, 'TRACE')
+        logger.log(`PUT ${url} ${JSON.stringify(body)}`, 'TRACE')
 
         const response = await githubInstance.put(url, body)
         await res.json(response.data)
