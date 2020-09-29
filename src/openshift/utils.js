@@ -31,7 +31,6 @@ async function getGroupsForUser(userName) {
 
     return response.data.items
         .filter(group => group.users.indexOf(userName) !== -1)
-        .map(group => group.metadata.name)
 }
 
 async function createGroup(name, users) {
