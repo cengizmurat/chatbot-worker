@@ -117,7 +117,7 @@ async function createProjectInGroup(groupId, projectName, importUrl) {
         only_mirror_protected_branches: false,
     }
 
-    logger.log(url}`, 'TRACE')
+    logger.log(`POST ${url} ${JSON.stringify(body)}`, 'TRACE')
     const project = await gitlabInstance.post(url, body)
     return project.data
 }
