@@ -86,7 +86,7 @@ async function removeUsersFromGroup(req, res, next) {
 
     if (users === undefined) {
         next(new Error('Missing parameter "users"'))
-    } else if (Array.isArray(users)) {
+    } else if (!Array.isArray(users)) {
         next(new Error('Parameter "users" should be a list of user names'))
     } else {
         try {
