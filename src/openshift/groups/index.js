@@ -11,7 +11,8 @@ router.post('/', createGroup)
 
 router.get('/:name', getGroup)
 router.delete('/:name', deleteGroup)
-router.put('/:name', addUsersToGroup)
+router.put('/:name/grant', addUsersToGroup)
+router.put('/:name/revoke', removeUsersFromGroup)
 
 async function getGroups(req, res, next) {
     const username = req.query['username']
@@ -72,6 +73,25 @@ async function addUsersToGroup(req, res, next) {
             group.users.concat(users)
             // only unique elements
             group.users = group.users.filter((value, index, array) => array.indexOf(value) === index)
+            await res.json(await utils.updateGroup(name, group))
+        } catch (e) {
+            next(e)
+        }
+    }
+}
+
+async function removeUsersFromGroup(req, res, next) {
+    const name = req.params['name']
+    const { users } = req.body
+
+    if (users === undefined) {
+        next(new Error('Missing parameter "users"'))
+    } else if (Array.isArray(users)) {
+        next(new Error('Parameter "users" should be a list of user names'))
+    } else {
+        try {
+            const group = await utils.getGroup(name)
+            group.users = group.users.filter(value => users.indexOf(value) === -1)
             await res.json(await utils.updateGroup(name, group))
         } catch (e) {
             next(e)
