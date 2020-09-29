@@ -10,6 +10,7 @@ router.get('/', getGroups)
 router.post('/', createGroup)
 
 router.get('/:name', getGroup)
+router.delete('/:name', deleteGroup)
 
 async function getGroups(req, res, next) {
     const username = req.query['username']
@@ -42,6 +43,15 @@ async function getGroup(req, res, next) {
     const name = req.params['name']
     try {
         await res.json(await utils.getGroup(name))
+    } catch (e) {
+        next(e)
+    }
+}
+
+async function deleteGroup(req, res, next) {
+    const name = req.params['name']
+    try {
+        await res.json(await utils.deleteGroup(name))
     } catch (e) {
         next(e)
     }

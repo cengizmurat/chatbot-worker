@@ -58,6 +58,14 @@ async function createGroup(name, users) {
     return response.data
 }
 
+async function deleteGroup(name) {
+    const url = `/apis/user.openshift.io/v1/groups/${name}`
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.delete(url)
+    return response.data
+}
+
 async function getProject(projectName) {
     const url = `/apis/project.openshift.io/v1/projects/${projectName}`
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
@@ -537,6 +545,7 @@ module.exports = {
     getGroup,
     getGroupsForUser,
     createGroup,
+    deleteGroup,
     getProject,
     deleteProject,
     createProjectRequest,
