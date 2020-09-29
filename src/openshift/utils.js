@@ -40,12 +40,12 @@ async function createGroup(name, users) {
         kind: "Group",
         apiVersion: "user.openshift.io/v1",
         metadata: {
-            name: "group-test",
+            name: name,
             labels: {
                 "openshift.io/ldap.host": "ldap.cip-ldap-common.svc.cluster.local",
             },
             annotations: {
-                "openshift.io/ldap.uid": "cn=group-test,ou=groups,ou=dev,ou=iam,dc=sgcip,dc=com",
+                "openshift.io/ldap.uid": `cn=${name},ou=groups,ou=dev,ou=iam,dc=sgcip,dc=com`,
                 "openshift.io/ldap.url": "ldap.cip-ldap-common.svc.cluster.local:389",
             },
         },
