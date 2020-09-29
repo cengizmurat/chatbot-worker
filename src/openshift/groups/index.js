@@ -70,7 +70,7 @@ async function addUsersToGroup(req, res, next) {
     } else {
         try {
             const group = await utils.getGroup(name)
-            group.users.concat(users)
+            group.users = group.users.concat(users)
             // only unique elements
             group.users = group.users.filter((value, index, array) => array.indexOf(value) === index)
             await res.json(await utils.updateGroup(name, group))
