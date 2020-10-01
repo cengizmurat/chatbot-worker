@@ -55,7 +55,7 @@ async function createProject(req, res, next) {
             await utils.updateProjectAnnotations(projectObj, username, [`dw-${group}-${type}-${billing}`])
             const projectName = projectObj.metadata.name
             await utils.updateProjectQuotas(projectName, 'small') // default project quota size
-            await utils.addUserToRolebinding(projectName, 'subadmin', username)
+            await utils.addUserToRolebinding(projectName, 'subadmin', username, 'User')
             await res.json(await utils.getProject(projectName))
         }
     } catch (e) {

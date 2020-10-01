@@ -21,16 +21,15 @@ async function getRoleBindings(req, res, next) {
 }
 
 async function addUserToProject(req, res, next) {
-    console.log(req.params)
     const projectName = req.params['project']
-    const { role, username } = req.body
+    const { role, username, group } = req.body
 
     if (role === undefined) {
         next(new Error('Missing parameter "role"'))
-    } else if (username === undefined) {
-        next(new Error('Missing parameter "username"'))
+    } else if (username === undefined || group === undefined) {
+        next(new Error('Missing parameter "username" or "group"'))
     } else try {
-        const response = await utils.addUserToRolebinding(projectName, role, username)
+        const response = await utils.addUserToRolebinding(projectName, role, username || group, username ? 'User' : 'Group')
         await res.json(response)
     } catch (e) {
         next(e)

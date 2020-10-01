@@ -328,12 +328,12 @@ async function getRoleBinding(roleName, projectName) {
     }
 }
 
-async function addUserToRolebinding(projectName, roleName, username) {
+async function addUserToRolebinding(projectName, roleName, name, kind) {
     const roleBinding = await getRoleBinding(roleName, projectName) || await createRoleBinding(roleName, projectName)
     roleBinding.subjects.push({
-        kind: 'User',
+        kind: kind,
         apiGroup: 'rbac.authorization.k8s.io',
-        name: username
+        name: name,
     })
 
     return await updateRoleBinding(roleBinding, projectName)
