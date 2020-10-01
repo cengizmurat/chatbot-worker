@@ -149,7 +149,7 @@ async function createResourceQuotas(projectName, quotaSpecs) {
     quotaSpecs.kind = "ResourceQuota"
     quotaSpecs.apiVersion = "v1"
 
-    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(quotaSpecs)}`, 'TRACE')
 
     const response = await axiosInstance.post(url, quotaSpecs)
     return response.data
@@ -159,7 +159,7 @@ async function updateResourceQuotas(projectName, quotaSpecs) {
     const url = `/api/v1/namespaces/${projectName}/resourcequotas/${quotaSpecs.metadata.name}`
     quotaSpecs.kind = "ResourceQuota"
     quotaSpecs.apiVersion = "v1"
-    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(quotaSpecs)}`, 'TRACE')
 
     const response = await axiosInstance.put(url, quotaSpecs)
     return response.data
@@ -295,7 +295,7 @@ async function createRoleBinding(roleName, projectName) {
 
 async function updateRoleBinding(roleBinding, projectName) {
     const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings/${roleBinding.metadata.name}`
-    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
+    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(roleBinding)}`, 'TRACE')
 
     const response = await axiosInstance.put(url, roleBinding)
     return response.data
