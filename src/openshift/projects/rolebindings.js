@@ -26,7 +26,7 @@ async function addUserToProject(req, res, next) {
 
     if (role === undefined) {
         next(new Error('Missing parameter "role"'))
-    } else if (username === undefined || group === undefined) {
+    } else if (username === undefined && group === undefined) {
         next(new Error('Missing parameter "username" or "group"'))
     } else try {
         const response = await utils.addUserToRolebinding(projectName, role, username || group, username ? 'User' : 'Group')
