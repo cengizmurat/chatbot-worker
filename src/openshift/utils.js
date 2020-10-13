@@ -527,18 +527,8 @@ async function createMachineSet(clusterName, region, namespace, group, name, ins
     return response.data
 }
 
-async function patchMachineSet(namespace, name, spec) {
+async function patchMachineSet(namespace, name, body) {
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets/${name}`
-    const metadata = {
-        name: name,
-    }
-
-    const body = {
-        apiVersion: "machine.openshift.io/v1beta1",
-        kind: "MachineSet",
-        metadata: metadata,
-        spec: spec,
-    }
 
     const patchConfig = Object.assign({}, globalConfig)
     patchConfig.headers['Content-Type'] = "application/merge-patch+json"
@@ -567,5 +557,6 @@ module.exports = {
     getMachineSet,
     getMachineSets,
     deleteMachineSet,
+    patchMachineSet,
     createPatchedMachineSet,
 }

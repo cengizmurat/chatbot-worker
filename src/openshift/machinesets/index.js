@@ -9,6 +9,7 @@ const router = express.Router({
 router.get('/', getMachineSets)
 router.post('/', createMachineSet)
 router.get('/:name', getMachineSet)
+router.put('/:name', updateMachineSet)
 router.delete('/:name', deleteMachineSet)
 
 async function getMachineSets(req, res, next) {
@@ -27,6 +28,18 @@ async function getMachineSet(req, res, next) {
     const name = req.params['name']
     try {
         await res.json(await utils.getMachineSet(namespace, name))
+    } catch (e) {
+        next(e)
+    }
+}
+
+async function updateMachineSet(req, res, next) {
+    const namespace = 'openshift-machine-api'
+    const name = req.params['name']
+    const body = req.body
+
+    try {
+        await res.json(await utils.patchMachineSet(namespace, name, body))
     } catch (e) {
         next(e)
     }
