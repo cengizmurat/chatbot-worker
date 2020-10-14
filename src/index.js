@@ -94,7 +94,13 @@ function logResponseBody(req, res) {
             chunks.push(Buffer.from(chunk))
 
         const body = Buffer.concat(chunks).toString('utf8')
-        logger.log([`Response ${req.originalUrl} (${res.statusCode})`, JSON.parse(body)], 'TRACE')
+        let log
+        try {
+            log = JSON.parse(body)
+        } catch (e) {
+            log = body
+        }
+        logger.log([`Response ${req.originalUrl} (${res.statusCode})`, log], 'TRACE')
 
         oldEnd.apply(res, arguments)
     }
