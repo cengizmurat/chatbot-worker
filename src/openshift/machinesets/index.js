@@ -39,10 +39,11 @@ async function updateMachineSet(req, res, next) {
     const body = req.body
 
     try {
-        const disabledMachineSet = Object.assign({}, body)
-        disabledMachineSet.spec.replicas = 0
-        await utils.updateMachineSet(namespace, name, disabledMachineSet)
-        await res.json(await utils.updateMachineSet(namespace, name, body))
+        const replicas = body.spec.replicas
+        body.spec.replicas = 0 // kill all previous Machines
+        const machineSet = await utils.updateMachineSet(namespace, name, body)
+        machineSet.spec.replicas = replicas
+        await res.json(await utils.updateMachineSet(namespace, name, machineSet))
     } catch (e) {
         next(e)
     }
