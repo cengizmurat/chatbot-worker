@@ -10,7 +10,6 @@ router.get('/', getMachineSets)
 router.post('/', createMachineSet)
 router.get('/:name', getMachineSet)
 router.put('/:name', updateMachineSet)
-router.put('/:name/scale', scaleMachineSet)
 router.delete('/:name', deleteMachineSet)
 
 async function getMachineSets(req, res, next) {
@@ -41,18 +40,6 @@ async function updateMachineSet(req, res, next) {
 
     try {
         await res.json(await utils.updateMachineSet(namespace, name, body))
-    } catch (e) {
-        next(e)
-    }
-}
-
-async function scaleMachineSet(req, res, next) {
-    const namespace = 'openshift-machine-api'
-    const name = req.params['name']
-    const { replicas } = req.body
-
-    try {
-        await res.json(await utils.patchMachineSet(namespace, name, body))
     } catch (e) {
         next(e)
     }
