@@ -530,8 +530,14 @@ async function createMachineSet(clusterName, region, namespace, group, name, ins
 async function updateMachineSet(namespace, name, body) {
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets/${name}`
 
-    logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
-    const response = await axiosInstance.put(config.OPENSHIFT_URL + url, body)
+    const patchConfig = Object.assign({}, globalConfig)
+    patchConfig.headers['Content-Type'] = "application/merge-patch+json"
+
+    // Remove unchanging metadata values, keep only name (required)
+    body.metadata = { name: body.metadata.name }
+
+    logger.log(`PATCH ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
+    const response = await axiosInstance.patch(config.OPENSHIFT_URL + url, body, patchConfig)
     return response.data
 }
 
