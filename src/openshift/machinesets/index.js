@@ -43,6 +43,7 @@ async function updateMachineSet(req, res, next) {
         body.spec.replicas = 0 // kill all previous Machines
         const machineSet = await utils.updateMachineSet(namespace, name, body)
         machineSet.spec.replicas = replicas
+        delete machineSet.status
         await res.json(await utils.updateMachineSet(namespace, name, machineSet))
     } catch (e) {
         next(e)
