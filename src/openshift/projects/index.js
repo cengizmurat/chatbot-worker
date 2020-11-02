@@ -65,7 +65,7 @@ async function createProject(req, res, next) {
 }
 
 async function createDefaultHypnos(namespace) {
-    const hypnosInstances = await utils.getHypnosInstances()
+    const hypnosInstances = (await utils.getHypnosInstances()).filter(instance => instance.metadata.labels && instance.metadata.labels.namespace === namespace)
     const name = `${namespace}-${hypnosInstances.length + 1}`
     const label = 'io.shyrka.erebus/hypnos'
     const spec = {

@@ -549,7 +549,10 @@ async function createHypnosInstance(namespace, name, spec) {
         kind: "Hypnos",
         metadata: {
             name: name,
-            namespace: namespace,
+            namespace: namespace, // disappears after for now
+            labels: {
+                namespace: namespace,
+            },
         },
         "spec": spec,
     }
