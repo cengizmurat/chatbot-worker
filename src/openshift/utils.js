@@ -541,6 +541,33 @@ async function updateMachineSet(namespace, name, body) {
     return response.data
 }
 
+async function createHypnosInstance(namespace, name, spec) {
+    const url = '/apis/shyrkaio.github.io/v1alpha1/hypnox'
+
+    const body = {
+        apiVersion: "shyrkaio.github.io/v1alpha1",
+        kind: "Hypnos",
+        metadata: {
+            name: name,
+            namespace: namespace,
+        },
+        "spec": spec,
+    }
+
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
+    const response = await axiosInstance.post(config.OPENSHIFT_URL + url, body)
+    return response.data
+}
+
+async function getHypnosInstances() {
+    const url = '/apis/shyrkaio.github.io/v1alpha1/hypnox'
+
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(config.OPENSHIFT_URL + url)
+    return response.data.items
+}
+
 module.exports = {
     getGroup,
     getGroupsForUser,
@@ -562,4 +589,6 @@ module.exports = {
     deleteMachineSet,
     updateMachineSet,
     createPatchedMachineSet,
+    getHypnosInstances,
+    createHypnosInstance,
 }

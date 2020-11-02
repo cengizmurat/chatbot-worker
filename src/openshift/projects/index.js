@@ -55,12 +55,33 @@ async function createProject(req, res, next) {
             await utils.updateProjectAnnotations(projectObj, username, [`dw-${group}-${type}-${billing}`])
             const projectName = projectObj.metadata.name
             await utils.updateProjectQuotas(projectName, 'small') // default project quota size
+            await createDefaultHypnos(namespace)
             await utils.addUserToRolebinding(projectName, 'subadmin', username, 'User')
             await res.json(await utils.getProject(projectName))
         }
     } catch (e) {
         next(e)
     }
+}
+
+async function createDefaultHypnos(namespace) {
+    const hypnosInstances = await utils.getHypnosInstances()
+    const name = `${namespace}-${hypnosInstances.length + 1}`
+    const label = 'io.shyrka.erebus/hypnos'
+    const spec = {
+        targetedLabel: `${label}=${name}-workload`,
+        namespaceTargetedLabel: `${label}=${name}-namespace`,
+        "cron-type": 'unix',
+        "wakeup-cron": '0 9 * * *',
+        "sleep-cron": '0 19 * * *',
+        comments: 'Generated from Bot',
+        resourceType: [
+            'Deployment',
+            'HorizontalPodAutoscaler',
+            'StatefulSet',
+        ],
+    }
+    return await utils.createHypnosInstance(namespace, name, spec)
 }
 
 async function getProjects(req, res, next) {
