@@ -112,22 +112,15 @@ async function createProjectRequest(projectName) {
     return response.data
 }
 
-async function updateProjectAnnotations(project, username, taintTolerations) {
+async function updateNamespaceMetadata(project, username, annotations, labels) {
     const url = `/api/v1/namespaces/${project.metadata.name}`
     const body = {
         kind: "Namespace",
         apiVersion: "v1",
         metadata: {
             name: project.metadata.name,
-            annotations: {
-                "cip-allowed-tolerations-keys": taintTolerations.length > 0 ? taintTolerations.join(',') : undefined,
-                "openshift.io/requester": username,
-                "openshift.io/description": project.metadata.annotations['openshift.io/description'],
-                "openshift.io/display-name": project.metadata.annotations['openshift.io/display-name']
-            },
-            "labels": {
-                "redhat-cop.github.com/gatekeeper-active": "true",
-            },
+            annotations: annotations,
+            labels: labels,
         }
     }
     logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
@@ -554,7 +547,7 @@ async function createHypnosInstance(namespace, name, spec) {
                 namespace: namespace,
             },
         },
-        "spec": spec,
+        spec: spec,
     }
 
     logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
@@ -580,7 +573,7 @@ module.exports = {
     getProject,
     deleteProject,
     createProjectRequest,
-    updateProjectAnnotations,
+    updateNamespaceMetadata,
     getResourceQuotas,
     updateProjectQuotas,
     updateRoleBinding,
