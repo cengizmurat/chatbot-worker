@@ -82,21 +82,7 @@ async function createProject(req, res, next) {
 async function createDefaultHypnos(namespace) {
     const hypnosInstances = (await utils.getHypnosInstances()).filter(instance => instance.metadata.labels && instance.metadata.labels.namespace === namespace)
     const name = `${namespace}-${hypnosInstances.length + 1}`
-    const label = 'io.shyrka.erebus/hypnos'
-    const spec = {
-        targetedLabel: `${label}=${name}`,
-        namespaceTargetedLabel: `${label}=${name}`,
-        "cron-type": 'unix',
-        "wakeup-cron": '0 9 * * *',
-        "sleep-cron": '0 19 * * *',
-        comments: 'Generated from Bot',
-        resourceType: [
-            'Deployment',
-            'HorizontalPodAutoscaler',
-            'StatefulSet',
-        ],
-    }
-    return await utils.createHypnosInstance(namespace, name, spec)
+    return await utils.createHypnosInstance(namespace, name, '0 9 * * *', '0 19 * * *')
 }
 
 async function getProjects(req, res, next) {

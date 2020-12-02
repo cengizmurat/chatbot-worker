@@ -523,19 +523,30 @@ async function createMachineSet(clusterName, region, namespace, group, name, ins
 async function updateMachineSet(namespace, name, body) {
     const url = `/apis/machine.openshift.io/v1beta1/namespaces/${namespace}/machinesets/${name}`
 
-    const patchConfig = Object.assign({}, globalConfig)
-    patchConfig.headers['Content-Type'] = "application/merge-patch+json"
-
-    // Remove unchanging metadata values, keep only name (required)
-    body.metadata = { name: body.metadata.name }
+    const patchConfig = handlePatch(body)
 
     logger.log(`PATCH ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
     const response = await axiosInstance.patch(config.OPENSHIFT_URL + url, body, patchConfig)
     return response.data
 }
 
-async function createHypnosInstance(namespace, name, spec) {
+async function createHypnosInstance(namespace, name, wakeupCron, sleepCron) {
     const url = '/apis/shyrkaio.github.io/v1alpha1/hypnox'
+
+    const label = 'io.shyrka.erebus/hypnos'
+    const spec = {
+        targetedLabel: `${label}=${name}`,
+        namespaceTargetedLabel: `${label}=${name}`,
+        "cron-type": 'unix',
+        "wakeup-cron": wakeupCron,
+        "sleep-cron": sleepCron,
+        comments: 'Generated from Bot',
+        resourceType: [
+            'Deployment',
+            'HorizontalPodAutoscaler',
+            'StatefulSet',
+        ],
+    }
 
     const body = {
         apiVersion: "shyrkaio.github.io/v1alpha1",
@@ -564,6 +575,52 @@ async function getHypnosInstances() {
     return response.data.items
 }
 
+async function getHypnosInstance(name) {
+    const url = `/apis/shyrkaio.github.io/v1alpha1/hypnox/${name}`
+
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(config.OPENSHIFT_URL + url)
+    return response.data
+}
+
+async function updateHypnosInstance(name, wakeupCron, sleepCron) {
+    const url = `/apis/shyrkaio.github.io/v1alpha1/hypnox/${name}`
+
+    const instance = {
+        metadata: {
+            name: name,
+        },
+        spec: {
+            "wakeup-cron": wakeupCron,
+            "sleep-cron": sleepCron,
+        },
+    }
+    const patchConfig = handlePatch(instance)
+
+    logger.log(`PATCH ${config.OPENSHIFT_URL + url} ${JSON.stringify(instance)}`, 'TRACE')
+    const response = await axiosInstance.patch(config.OPENSHIFT_URL + url, instance, patchConfig)
+    return response.data
+}
+
+async function deleteHypnosInstance(name) {
+    const url = `/apis/shyrkaio.github.io/v1alpha1/hypnox/${name}`
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.delete(url)
+    return response.data
+}
+
+function handlePatch(object) {
+    const patchConfig = Object.assign({}, globalConfig)
+    patchConfig.headers['Content-Type'] = "application/merge-patch+json"
+
+    // Remove unchanging metadata values, keep only name (required)
+    object.metadata = { name: object.metadata.name }
+
+    return patchConfig
+}
+
 module.exports = {
     getGroup,
     getGroupsForUser,
@@ -586,5 +643,8 @@ module.exports = {
     updateMachineSet,
     createPatchedMachineSet,
     getHypnosInstances,
+    getHypnosInstance,
     createHypnosInstance,
+    updateHypnosInstance,
+    deleteHypnosInstance,
 }
