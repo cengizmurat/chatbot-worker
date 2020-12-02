@@ -84,8 +84,8 @@ async function createDefaultHypnos(namespace) {
     const name = `${namespace}-${hypnosInstances.length + 1}`
     const label = 'io.shyrka.erebus/hypnos'
     const spec = {
-        targetedLabel: `${label}=${name}-workload`,
-        namespaceTargetedLabel: `${label}=${name}-namespace`,
+        targetedLabel: `${label}=${name}`,
+        namespaceTargetedLabel: `${label}=${name}`,
         "cron-type": 'unix',
         "wakeup-cron": '0 9 * * *',
         "sleep-cron": '0 19 * * *',
