@@ -61,13 +61,13 @@ async function createInstance(req, res, next) {
   const { wakeupCron, sleepCron } = req.body
 
   if (wakeupCron === undefined) {
-    next(new Error('Missing parameter "wakeupCron"'))
+    next(createError('Missing parameter "wakeupCron"', 400))
   } else if (sleepCron === undefined) {
-    next(new Error('Missing parameter "sleepCron"'))
+    next(createError('Missing parameter "sleepCron"', 400))
   } else if (!checkCron(wakeupCron)) {
-    next(new Error('Parameter "wakeupCron" is not a valid unix cron'))
+    next(createError('Parameter "wakeupCron" is not a valid unix cron', 400))
   } else if (!checkCron(sleepCron)) {
-    next(new Error('Parameter "sleepCron" is not a valid unix cron'))
+    next(createError('Parameter "sleepCron" is not a valid unix cron', 400))
   } else {
     try {
       const instances = await namespaceInstances(namespace)
@@ -85,13 +85,13 @@ async function updateInstance(req, res, next) {
   const { wakeupCron, sleepCron } = req.body
 
   if (wakeupCron === undefined) {
-    next(new Error('Missing parameter "wakeupCron"'))
+    next(createError('Missing parameter "wakeupCron"', 400))
   } else if (sleepCron === undefined) {
-    next(new Error('Missing parameter "sleepCron"'))
+    next(createError('Missing parameter "sleepCron"', 400))
   } else if (!checkCron(wakeupCron)) {
-    next(new Error('Parameter "wakeupCron" is not a valid unix cron'))
+    next(createError('Parameter "wakeupCron" is not a valid unix cron', 400))
   } else if (!checkCron(sleepCron)) {
-    next(new Error('Parameter "sleepCron" is not a valid unix cron'))
+    next(createError('Parameter "sleepCron" is not a valid unix cron', 400))
   } else {
     try {
       await res.json(await utils.updateHypnosInstance(name, wakeupCron, sleepCron))
@@ -109,6 +109,17 @@ async function deleteInstance(req, res, next) {
   } catch (e) {
     next(e)
   }
+}
+
+function createError(message, code) {
+  const error = new Error(message)
+  error.response = {
+    data: {
+      message: message,
+    },
+    status: code,
+  }
+  return error
 }
 
 module.exports = router
