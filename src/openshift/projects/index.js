@@ -52,7 +52,23 @@ async function createProject(req, res, next) {
                 maxPrice,
             )
             const projectObj = await utils.createProjectRequest(project)
-            await utils.updateProjectAnnotations(projectObj, username, [`dw-${group}-${type}-${billing}`])
+            const hypnosInstance = await createDefaultHypnos(namespace)
+
+            const taintTolerations = [
+                `dw-${group}-${type}-${billing}`,
+            ]
+            const annotations = {
+                "cip-allowed-tolerations-keys": taintTolerations.length > 0 ? taintTolerations.join(',') : undefined,
+                "openshift.io/requester": username,
+                "openshift.io/description": projectObj.metadata.annotations['openshift.io/description'],
+                "openshift.io/display-name": projectObj.metadata.annotations['openshift.io/display-name'],
+            }
+            const labels = {
+                "redhat-cop.github.com/gatekeeper-active": "true",
+                "io.shyrka.erebus/hypnos": hypnosInstance.spec.namespaceTargetedLabel,
+            }
+            await utils.updateNamespaceMetadata(projectObj, username, annotations, labels)
+
             const projectName = projectObj.metadata.name
             await utils.updateProjectQuotas(projectName, 'small') // default project quota size
             await utils.addUserToRolebinding(projectName, 'subadmin', username, 'User')
@@ -61,6 +77,12 @@ async function createProject(req, res, next) {
     } catch (e) {
         next(e)
     }
+}
+
+async function createDefaultHypnos(namespace) {
+    const hypnosInstances = (await utils.getHypnosInstances()).filter(instance => instance.metadata.labels && instance.metadata.labels.namespace === namespace)
+    const name = `${namespace}-${hypnosInstances.length + 1}`
+    return await utils.createHypnosInstance(namespace, name, '0 9 * * *', '0 19 * * *')
 }
 
 async function getProjects(req, res, next) {
