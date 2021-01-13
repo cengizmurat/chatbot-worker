@@ -6,10 +6,7 @@ const logger = require('../logger')
 const config = require('../../config.js')
 const router = express.Router()
 
-if (config.IAMAAS_URL !== undefined) {
-    // SGitHub special endpoints
-    router.put('/repos/:orgId/:repoName/import', utils.importRepository)
-}
+router.post('/mirror', utils.mirrorRepository)
 router.post('/*', postAll)
 router.get('/*', getAll)
 router.put('/*', putAll)

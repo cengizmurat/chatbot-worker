@@ -1,7 +1,5 @@
-const fs = require('fs')
 const axios = require('axios')
 const httpsProxyAgent = require('https-proxy-agent')
-const simpleGit = require('simple-git')
 
 const logger = require('../logger')
 const config = require('../../config.js')
@@ -12,164 +10,83 @@ const agent = new httpsProxyAgent({
 })
 
 const gitlabInstance = axios.create({
+    baseURL: config.GITLAB_URL,
     headers: { Authorization: `Bearer ${config.GITLAB_TOKEN}` },
     proxy: false,
-    httpsAgent: agent,
+    //httpsAgent: agent,
 })
 
-const repoDirectory = 'imports'
 const gitlabImportsGroupId = 984
-let currentUserId
+const syncRepositoryId = 2220
+const repositoriesFilePath = 'data/repositories.json'
 
-async function importRepository(req, res, next) {
-    try {
-        const orgId = req.params['orgId']
-        const repoName = req.params['repoName']
-        let {destination_url, vcs_url} = req.body
-        destination_url = repoUrl(destination_url)
-        vcs_url = repoUrl(vcs_url)
+async function mirrorRepository(req, res, next) {
+    const {
+        isPrivate,
+        owner,
+        name,
+        url,
+    } = req.body
 
-        logger.log(`Importing repository "${vcs_url}" to GitLab...`, 'INFO')
+    const project = await createEmptyProject(name, owner)
 
-        const groupId = await getGroupId(orgId)
-        const createdProject = await createProjectInGroup(groupId, repoName, vcs_url)
-
-        const intervalID = setInterval(async function() {
-            try {
-                const url = `${config.GITLAB_URL}/api/v4/projects/${createdProject.id}`
-                logger.log(`GET ${url}`, 'TRACE')
-                const project = await gitlabInstance.get(url)
-                if (project.data.import_status === 'finished') {
-                    clearInterval(intervalID)
-
-                    logger.log(`Importing GitLab repository to "${destination_url}"`, 'INFO')
-                    const baseDirectory = `./${repoDirectory}/${orgId}`
-                    fs.mkdirSync(baseDirectory, {recursive: true})
-
-                    const git = simpleGit(baseDirectory)
-                    await cloneGitLabRepository(repoName, baseDirectory, project.data, git)
-                    const repoPath = `${baseDirectory}/${repoName}`
-                    await pushGitLabRepository(repoPath, destination_url, git)
-
-                    await res.json({result: 'OK'})
-                } else if (project.data.import_status === 'failed') {
-                    clearInterval(intervalID)
-                    res.status(500)
-                    await res.json({error: project.data.import_error})
-                }
-            } catch (e) {
-                clearInterval(intervalID)
-                next(e)
-            }
-        }, 1000)
-    } catch (e) {
-        next(e)
+    const newData = {
+        private: isPrivate,
+        owner,
+        source: name,
     }
+    const response = await appendToDataFile(newData, repositoriesFilePath)
+    await res.json(response.data)
 }
 
-function repoUrl(url) {
-    return url + (url.endsWith('.git') ? '' : '.git')
-}
+async function createEmptyProject(name, owner) {
+    const subgroup = await getOrCreateSubgroup(owner)
 
-async function getGroupId(groupName) {
-    const getUrl = `${config.GITLAB_URL}/api/v4/groups/${gitlabImportsGroupId}/subgroups?search=${groupName}`
-    logger.log(`GET ${getUrl}`, 'TRACE')
-    const groups = await gitlabInstance.get(getUrl)
+    logger.log(`Creating project "${name}"...`)
+    const project = await gitlabInstance.post('/projects', {
+        path: name,
+        namespace_id: subgroup.id,
+    })
+    logger.log(`Project "${name}" created`)
 
-    for (const group of groups.data) {
-        if (group.name === groupName) {
-            return group.id
-        }
-    }
-
-    const postUrl = `${config.GITLAB_URL}/api/v4/groups`
-    const body = {
-        name: groupName,
-        path: groupName,
-        parent_id: gitlabImportsGroupId,
-    }
-    logger.log(`POST ${postUrl} ${JSON.stringify(body)}`, 'TRACE')
-    const newGroup = await gitlabInstance.post(postUrl, body)
-    return newGroup.data.id
-}
-
-async function getCurrentUserId() {
-    if (currentUserId) {
-        return currentUserId
-    }
-
-    const url = `${config.GITLAB_URL}/api/v4/user`
-    logger.log(`GET ${url}`, 'TRACE')
-
-    const response = await gitlabInstance.get(url)
-    return response.data.id
-}
-
-async function createProjectInGroup(groupId, projectName, importUrl) {
-    const url = `${config.GITLAB_URL}/api/v4/projects`
-    const body = {
-        namespace_id: groupId,
-        name: projectName,
-        import_url: importUrl,
-        mirror: true,
-        mirror_user_id: await getCurrentUserId(),
-        mirror_trigger_builds: false,
-        only_mirror_protected_branches: false,
-    }
-
-    logger.log(`POST ${url} ${JSON.stringify(body)}`, 'TRACE')
-    const project = await gitlabInstance.post(url, body)
     return project.data
 }
 
-async function cloneGitLabRepository(repoName, baseDirectory, project, git) {
-    const repoPath = `${baseDirectory}/${repoName}`
-    try {
-        if (fs.lstatSync(repoPath).isDirectory()) {
-            fs.rmdirSync(repoPath, {recursive: true})
-        }
-    } catch (e) {
-    } finally {
-        fs.mkdirSync(baseDirectory, {recursive: true})
+async function getOrCreateSubgroup(name) {
+    const groups = await gitlabInstance.get(`/groups/${gitlabImportsGroupId}/subgroups?search=${name}`)
+    const subGroups = groups.data.filter(group => group.path === name)
+
+    const subGroup = subGroups[0]
+    if (subGroup) return subGroup
+
+    const body = {
+        name: name,
+        path: name,
+        parent_id: gitlabImportsGroupId,
     }
+    logger.log(`Creating subgroup "${name}"...`)
+    const response = await gitlabInstance.post(`/groups`, body)
+    logger.log(`Subgroup "${name}" created`)
 
-    logger.log(`Cloning repository "${project.http_url_to_repo}"...`, 'TRACE')
-    await git.clone(
-        authenticatedUrl('x-token-auth', config.GITLAB_TOKEN, project.http_url_to_repo),
-        project.name,
-        [
-            '--config',
-            `http.proxy=http://${config.PROXY_HOST}:${config.PROXY_PORT}`,
-        ],
-    )
-    logger.log(`"${project.http_url_to_repo}" cloned`, 'TRACE')
+    return response.data
 }
 
-async function pushGitLabRepository(repoPath, destination_url, git) {
-    await git.cwd(repoPath)
-    await git.removeRemote('origin')
-    await git.addRemote(
-        'origin',
-        destination_url,
-    )
-    await git.addConfig('http.proxy', '', false) // Unset proxy locally
+async function appendToDataFile(data, filePath, branch = 'master') {
+    const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(filePath)}`
+    const arrayData = await gitlabInstance.get(`${fileUrl}/raw?ref=${branch}`)
+    arrayData.data.push(data)
 
-    logger.log(`Pushing to repository "${destination_url}"...`, 'TRACE')
-    await git.push([
-        '--all',
-        authenticatedUrl(config.GITHUB_TOKEN, '', destination_url),
-    ])
+    logger.log(`Updating data file "${filePath}"...`)
+    const response = await gitlabInstance.put(`${fileUrl}`, {
+        branch: branch,
+        commit_message: "Automatic update from GitLab",
+        content: JSON.stringify(arrayData.data, null, 2),
+    })
+    logger.log(`Data file "${filePath}" updated`)
 
-    logger.log(`Pushed to repository "${destination_url}"`, 'INFO')
-}
-
-function authenticatedUrl(user, password, url) {
-    const httpsUrl = 'https://'
-    const isHttps = url.startsWith(httpsUrl)
-
-    return `http${isHttps ? 's' : ''}://${user}${(password ? ':' : '') + password}@${url.substring(httpsUrl.length - (isHttps ? 0 : 1))}`
+    return response.data
 }
 
 module.exports = {
-    importRepository,
+    mirrorRepository,
 }
