@@ -41,7 +41,7 @@ async function mirrorRepository(req, res, next) {
         let project = await createEmptyProject(name, owner)
 
         const newData = {
-            private: isPrivate,
+            private: isPrivate.toString() === 'true',
             owner,
             source: name,
         }
