@@ -1,24 +1,26 @@
 const axios = require('axios')
-const httpsProxyAgent = require('https-proxy-agent')
 
 const logger = require('../logger')
 const config = require('../../config.js')
 
-const agent = new httpsProxyAgent({
-    host: config.PROXY_HOST,
-    port: config.PROXY_PORT,
-})
+const gitlabTimeout = parseInt(config.GITLAB_WAIT_TIMEOUT)
+const gitlabCheckInterval = parseInt(config.GITLAB_CHECK_INTERVAL)
+const gitlabImportsGroupId = config.GITLAB_GROUP_ID
+const syncRepositoryId = config.GITLAB_SYNC_REPOSITORY_ID
+const repositoriesFilePath = 'data/repositories.json'
+const exportUrlBase = generateMirrorUrl(config.DESTINATION_URL, config.DESTINATION_TOKEN)
 
 const gitlabInstance = axios.create({
     baseURL: config.GITLAB_URL,
     headers: { Authorization: `Bearer ${config.GITLAB_TOKEN}` },
     proxy: false,
-    //httpsAgent: agent,
 })
 
-const gitlabImportsGroupId = 984
-const syncRepositoryId = 2220
-const repositoriesFilePath = 'data/repositories.json'
+function generateMirrorUrl(url, token) {
+    const protocolString = '://'
+    const protocolIndex = url.indexOf(protocolString) + protocolString.length
+    return url.substring(0, protocolIndex) + token + '@' + url.substring(protocolIndex)
+}
 
 async function mirrorRepository(req, res, next) {
     const {
@@ -28,7 +30,7 @@ async function mirrorRepository(req, res, next) {
         url,
     } = req.body
 
-    const project = await createEmptyProject(name, owner)
+    let project = await createEmptyProject(name, owner)
 
     const newData = {
         private: isPrivate,
@@ -36,6 +38,21 @@ async function mirrorRepository(req, res, next) {
         source: name,
     }
     const response = await appendToDataFile(newData, repositoriesFilePath)
+
+    logger.log('Waiting for destination server to respond...')
+    const success = await waitForDestination()
+    if (!success) {
+        res.statusCode = 503
+        return await res.json({
+            message: 'Waited too long for destination server',
+        })
+    }
+    logger.log('Destination server OK')
+
+    const exportUrl = `${exportUrlBase}/${owner}/${name}.git`
+    await configurePushMirror(project, exportUrl)
+    await configurePullMirror(project, url)
+
     await res.json(response.data)
 }
 
@@ -73,17 +90,69 @@ async function getOrCreateSubgroup(name) {
 
 async function appendToDataFile(data, filePath, branch = 'master') {
     const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(filePath)}`
-    const arrayData = await gitlabInstance.get(`${fileUrl}/raw?ref=${branch}`)
-    arrayData.data.push(data)
+    const arrayData = await getDataFile(fileUrl, branch)
+    arrayData.push(data)
 
     logger.log(`Updating data file "${filePath}"...`)
     const response = await gitlabInstance.put(`${fileUrl}`, {
         branch: branch,
         commit_message: "Automatic update from GitLab",
-        content: JSON.stringify(arrayData.data, null, 2),
+        content: JSON.stringify(arrayData, null, 2),
     })
     logger.log(`Data file "${filePath}" updated`)
 
+    return response.data
+}
+
+async function getDataFile(fileUrl, branch = 'master') {
+    const response = await gitlabInstance.get(`${fileUrl}/raw?ref=${branch}`)
+    return response.data
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitForDestination() {
+    const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(repositoriesFilePath)}`
+    const now = new Date()
+    let data = await getDataFile(fileUrl)
+    while (data.filter(object => object.destination === undefined).length > 0) {
+        await sleep(gitlabCheckInterval * 1000)
+        data = await getDataFile(fileUrl)
+        const diffSeconds = (new Date() - now) / 1000
+        if (diffSeconds > gitlabTimeout) {
+            return false
+        }
+    }
+
+    return true
+}
+
+async function configurePushMirror(project, exportUrl) {
+    const url = `/projects/${project.id}/remote_mirrors`
+    const body = {
+        url: exportUrl,
+        keep_divergent_refs: true,
+        only_protected_branches: false,
+        enabled: true,
+    }
+    logger.log(`Configuring push mirroring for project "${project.path_with_namespace}"...`)
+    const response = await gitlabInstance.post(url, body)
+    logger.log(`Push mirroring for project "${project.path_with_namespace}" configured`)
+    return response.data
+}
+
+async function configurePullMirror(project, importUrl) {
+    const url = `/projects/${project.id}`
+    const body = {
+        import_url: importUrl,
+        mirror: true,
+        only_mirror_protected_branches: false
+    }
+    logger.log(`Configuring pull mirroring for project "${project.path_with_namespace}"...`)
+    const response = await gitlabInstance.put(url, body)
+    logger.log(`Pull mirroring for project "${project.path_with_namespace}" configured`)
     return response.data
 }
 

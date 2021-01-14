@@ -5,13 +5,21 @@ const configFile = 'config.json'
 let config = {}
 const variables = [
   'OPENSHIFT_URL',
+  'GITLAB_URL',
+  'GITLAB_TOKEN',
+  'GITLAB_GROUP_ID',
+  'GITLAB_SYNC_REPOSITORY_ID',
   'GITHUB_URL',
   'GITHUB_TOKEN',
+  'DESTINATION_URL',
+  'DESTINATION_TOKEN',
 ]
 // Optional variables and their default values
 const optionalVariables = {
   'PORT': '3000',
   'INSECURE_REQUESTS': 'false',
+  'GITLAB_WAIT_TIMEOUT': '90',
+  'GITLAB_CHECK_INTERVAL': '10',
   'OPENSHIFT_TOKEN': undefined,
   'IAMAAS_URL': undefined,
   'CLIENT_ID': undefined,
@@ -22,8 +30,6 @@ const optionalVariables = {
   'LDAP_BASE': undefined,
   'LDAP_DN': undefined,
   'LDAP_PASSWORD': undefined,
-  'GITLAB_URL': undefined,
-  'GITLAB_TOKEN': undefined,
   'PROXY_HOST': undefined,
   'PROXY_PORT': undefined,
   'MACHINESET_SUBNET_ID': undefined,
