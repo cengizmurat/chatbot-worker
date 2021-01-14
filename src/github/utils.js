@@ -23,37 +23,43 @@ function generateMirrorUrl(url, token) {
 }
 
 async function mirrorRepository(req, res, next) {
-    const {
-        isPrivate,
-        owner,
-        name,
-        url,
-    } = req.body
+    try {
+        console.log(req.body)
+        const {
+            isPrivate,
+            owner,
+            name,
+            url,
+        } = req.body
 
-    let project = await createEmptyProject(name, owner)
+        let project = await createEmptyProject(name, owner)
 
-    const newData = {
-        private: isPrivate,
-        owner,
-        source: name,
+        const newData = {
+            private: isPrivate,
+            owner,
+            source: name,
+        }
+        const response = await appendToDataFile(newData, repositoriesFilePath)
+
+        logger.log('Waiting for destination server to respond...')
+        const success = await waitForDestination()
+        if (!success) {
+            res.statusCode = 503
+            return await res.json({
+                message: 'Waited too long for destination server',
+            })
+        }
+        logger.log('Destination server OK')
+
+        const exportUrl = `${exportUrlBase}/${owner}/${name}.git`
+        await configurePushMirror(project, exportUrl)
+        await configurePullMirror(project, url)
+
+        await res.json(response.data)
+    } catch (e) {
+        console.error(e)
+        next(e)
     }
-    const response = await appendToDataFile(newData, repositoriesFilePath)
-
-    logger.log('Waiting for destination server to respond...')
-    const success = await waitForDestination()
-    if (!success) {
-        res.statusCode = 503
-        return await res.json({
-            message: 'Waited too long for destination server',
-        })
-    }
-    logger.log('Destination server OK')
-
-    const exportUrl = `${exportUrlBase}/${owner}/${name}.git`
-    await configurePushMirror(project, exportUrl)
-    await configurePullMirror(project, url)
-
-    await res.json(response.data)
 }
 
 async function createEmptyProject(name, owner) {
