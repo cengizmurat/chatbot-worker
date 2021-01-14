@@ -22,9 +22,15 @@ function generateMirrorUrl(url, token) {
     return url.substring(0, protocolIndex) + token + '@' + url.substring(protocolIndex)
 }
 
+function decodeUrl(str) {
+    str = str.replace(/#x([0-9A-Fa-f]{2});/g, function() {
+        return String.fromCharCode(parseInt(arguments[1], 16));
+    });
+    return str.replace(/&amp;/g, '')
+}
+
 async function mirrorRepository(req, res, next) {
     try {
-        console.log(req.body)
         const {
             isPrivate,
             owner,
@@ -53,7 +59,7 @@ async function mirrorRepository(req, res, next) {
 
         const exportUrl = `${exportUrlBase}/${owner}/${name}.git`
         await configurePushMirror(project, exportUrl)
-        await configurePullMirror(project, url)
+        await configurePullMirror(project, decodeUrl(url))
 
         await res.json(response.data)
     } catch (e) {
