@@ -38,12 +38,20 @@ async function mirrorRepository(req, res, next) {
             url,
         } = req.body
 
+        const decodedUrl = decodeUrl(url)
+        const gitUrl = parseGitUrl(decodedUrl)
+        if (!gitUrl) {
+            res.statusCode = 400
+            return await res.json({message: 'Malformed Git URL'})
+        }
+
         let project = await createEmptyProject(name, owner)
 
         const newData = {
             private: isPrivate.toString() === 'true',
             owner,
             source: name,
+            url: gitUrl,
         }
         const response = await appendToDataFile(newData, repositoriesFilePath)
 
@@ -59,13 +67,30 @@ async function mirrorRepository(req, res, next) {
 
         const exportUrl = `${exportUrlBase}/${owner}/${name}.git`
         await configurePushMirror(project, exportUrl)
-        await configurePullMirror(project, decodeUrl(url))
+        await configurePullMirror(project, decodedUrl)
 
         await res.json(response.data)
     } catch (e) {
         console.error(e)
         next(e)
     }
+}
+
+function parseGitUrl(url) {
+    const protocolString = '://'
+    const index = url.indexOf(protocolString)
+    if (index === -1) {
+        return {}
+    }
+    const protocolIndex = index + protocolString.length
+    const slashString = '/'
+    const slashIndex = url.indexOf(slashString, protocolIndex)
+    const host = url.substring(protocolIndex, slashIndex)
+    const atSymbol = '@'
+    const atIndex = host.lastIndexOf(atSymbol)
+
+    const token = host.substring(0, atIndex) // ignored
+    return url.substring(0, protocolIndex) + url.substring(protocolIndex + atIndex + 1)
 }
 
 async function createEmptyProject(name, owner) {
