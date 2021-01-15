@@ -56,7 +56,7 @@ async function mirrorRepository(req, res, next) {
         const response = await appendToDataFile(newData, repositoriesFilePath)
 
         logger.log('Waiting for destination server to respond...')
-        const success = await waitForDestination()
+        const success = await waitForDestination(owner, name)
         if (!success) {
             res.statusCode = 503
             return await res.json({
@@ -150,11 +150,11 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitForDestination() {
+async function waitForDestination(owner, source) {
     const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(repositoriesFilePath)}`
     const now = new Date()
     let data = await getDataFile(fileUrl)
-    while (data.filter(object => object.destination === undefined).length > 0) {
+    while (data.filter(object => object.owner === owner && object.source === source && object.destination).length > 0) {
         await sleep(gitlabCheckInterval * 1000)
         data = await getDataFile(fileUrl)
         const diffSeconds = (new Date() - now) / 1000
