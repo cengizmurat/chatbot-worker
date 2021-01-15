@@ -19,7 +19,7 @@ const optionalVariables = {
   'PORT': '3000',
   'INSECURE_REQUESTS': 'false',
   'GITLAB_WAIT_TIMEOUT': '90',
-  'GITLAB_CHECK_INTERVAL': '10',
+  'GITLAB_CHECK_INTERVAL': '5',
   'OPENSHIFT_TOKEN': undefined,
   'IAMAAS_URL': undefined,
   'CLIENT_ID': undefined,
