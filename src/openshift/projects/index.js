@@ -65,8 +65,9 @@ async function createProject(req, res, next) {
             }
             const labels = {
                 "redhat-cop.github.com/gatekeeper-active": "true",
-                "io.shyrka.erebus/hypnos": hypnosInstance.spec.namespaceTargetedLabel,
             }
+            const hypnosLabels = hypnosInstance.spec.namespaceTargetedLabel.split('=')
+            labels[hypnosLabels[0]] = hypnosLabels[1]
             await utils.updateNamespaceMetadata(projectObj, username, annotations, labels)
 
             const projectName = projectObj.metadata.name
