@@ -13,10 +13,14 @@ const variables = [
   'GITHUB_TOKEN',
   'DESTINATION_URL',
   'DESTINATION_TOKEN',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_BUCKET_PREFIX',
 ]
 // Optional variables and their default values
 const optionalVariables = {
   'PORT': '3000',
+  'AWS_REGION': 'eu-west-1',
   'INSECURE_REQUESTS': 'false',
   'GITLAB_WAIT_TIMEOUT': '90',
   'GITLAB_CHECK_INTERVAL': '5',

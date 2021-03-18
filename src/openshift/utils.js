@@ -530,6 +530,93 @@ async function updateMachineSet(namespace, name, body) {
     return response.data
 }
 
+async function getCredentialsRequestInstances() {
+    const url = '/apis/cloudcredential.openshift.io/v1/credentialsrequests'
+
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(config.OPENSHIFT_URL + url)
+    return response.data.items
+}
+
+async function getCredentialsRequestInstance(name) {
+    const url = `/apis/cloudcredential.openshift.io/v1/credentialsrequests/${name}`
+
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(config.OPENSHIFT_URL + url)
+    return response.data
+}
+
+async function createCredentialsRequestInstance(namespace, name) {
+    const url = '/apis/cloudcredential.openshift.io/v1/credentialsrequests'
+    const credentialsNamespace = 'openshift-cloud-credential-operator'
+
+    const bucketPrefix = config.AWS_BUCKET_PREFIX
+    const fullName = `${namespace}-${name}`
+    
+    const statementEntry1 = {
+        effect: 'Allow',
+        resource: `arn:aws:s3:::${bucketPrefix}-${fullName}`,
+        action: [
+            's3:ListBucket',
+        ],
+    }
+    const statementEntry2 = {
+        effect: 'Allow',
+        resource: `arn:aws:s3:::${bucketPrefix}-${fullName}/*`,
+        action: [
+            's3:DeleteObject',
+            's3:GetObject',
+            's3:PutObject',
+            's3:ReplicateObject',
+            's3:RestoreObject',
+        ],
+    }
+
+    const statementEntries = []
+    statementEntries.push(statementEntry1)
+    statementEntries.push(statementEntry2)
+
+    const providerSpec = {
+        apiVersion: 'cloudcredential.openshift.io/v1',
+        kind: 'AWSProviderSpec',
+        statementEntries: statementEntries,
+    }
+
+    const secretRef = {
+        name: name,
+        namespace: namespace,
+    }
+
+    const spec = {
+        providerSpec: providerSpec,
+        secretRef: secretRef,
+    }
+
+    const body = {
+        apiVersion: "cloudcredential.openshift.io/v1",
+        kind: "CredentialsRequest",
+        metadata: {
+            name: fullName,
+            namespace: credentialsNamespace,
+        },
+        spec: spec,
+    }
+
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
+    const response = await axiosInstance.post(config.OPENSHIFT_URL + url, body)
+    return response.data
+}
+
+async function deleteCredentialsRequestInstance(name) {
+    const url = `/apis/cloudcredential.openshift.io/v1/credentialsrequests/${name}`
+    logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.delete(url)
+    return response.data
+}
+
 async function createHypnosInstance(namespace, name, wakeupCron, sleepCron) {
     const url = '/apis/shyrkaio.github.io/v1alpha1/hypnox'
 
@@ -642,6 +729,10 @@ module.exports = {
     deleteMachineSet,
     updateMachineSet,
     createPatchedMachineSet,
+    getCredentialsRequestInstances,
+    getCredentialsRequestInstance,
+    createCredentialsRequestInstance,
+    deleteCredentialsRequestInstance,
     getHypnosInstances,
     getHypnosInstance,
     createHypnosInstance,
