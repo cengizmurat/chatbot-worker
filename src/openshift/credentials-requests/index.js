@@ -10,7 +10,6 @@ router.get('/', getInstances)
 router.get('/:name', getInstance)
 
 router.post('/namespaces/:namespace', createInstance)
-router.put('/:name', updateInstance)
 router.delete('/:name', deleteInstance)
 
 async function getInstances(req, res, next) {
