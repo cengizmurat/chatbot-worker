@@ -3,6 +3,8 @@ const https = require('https')
 const config = require('../../config.js')
 const logger = require('../logger')
 
+const credentialsNamespace = 'openshift-cloud-credential-operator'
+
 const token = config.OPENSHIFT_TOKEN
 const globalConfig = {
     headers: { Authorization: `Bearer ${token}` },
@@ -531,7 +533,7 @@ async function updateMachineSet(namespace, name, body) {
 }
 
 async function getCredentialsRequestInstances() {
-    const url = '/apis/cloudcredential.openshift.io/v1/credentialsrequests'
+    const url = `/apis/cloudcredential.openshift.io/v1/namespaces/${credentialsNamespace}/credentialsrequests`
 
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
@@ -540,7 +542,7 @@ async function getCredentialsRequestInstances() {
 }
 
 async function getCredentialsRequestInstance(name) {
-    const url = `/apis/cloudcredential.openshift.io/v1/credentialsrequests/${name}`
+    const url = `/apis/cloudcredential.openshift.io/v1/namespaces/${credentialsNamespace}/credentialsrequests/${name}`
 
     logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
@@ -549,12 +551,11 @@ async function getCredentialsRequestInstance(name) {
 }
 
 async function createCredentialsRequestInstance(namespace, name) {
-    const url = '/apis/cloudcredential.openshift.io/v1/credentialsrequests'
-    const credentialsNamespace = 'openshift-cloud-credential-operator'
+    const url = `/apis/cloudcredential.openshift.io/v1/namespaces/${credentialsNamespace}/credentialsrequests`
 
     const bucketPrefix = config.AWS_BUCKET_PREFIX
     const fullName = `${namespace}-${name}`
-    
+
     const statementEntry1 = {
         effect: 'Allow',
         resource: `arn:aws:s3:::${bucketPrefix}-${fullName}`,
@@ -610,7 +611,7 @@ async function createCredentialsRequestInstance(namespace, name) {
 }
 
 async function deleteCredentialsRequestInstance(name) {
-    const url = `/apis/cloudcredential.openshift.io/v1/credentialsrequests/${name}`
+    const url = `/apis/cloudcredential.openshift.io/v1/namespaces/${credentialsNamespace}/credentialsrequests/${name}`
     logger.log(`DELETE ${config.OPENSHIFT_URL + url}`, 'TRACE')
 
     const response = await axiosInstance.delete(url)
