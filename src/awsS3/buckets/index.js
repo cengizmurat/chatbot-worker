@@ -6,11 +6,13 @@ const router = express.Router({
   mergeParams: true,
 })
 
-router.get('/', listBuckets)
-router.post('/', createBucket)
-router.delete('/:name', deleteBucket)
+router.get('/namespaces/:namespace', listBuckets)
+router.post('/namespaces/:namespace', createBucket)
+router.delete('/namespaces/:namespace/:name', deleteBucket)
 
 async function listBuckets(req, res, next) {
+  const namespace = req.params['namespace']
+
   try {
     const response = await utils.listBuckets()
     await res.json(response.Buckets)
@@ -20,12 +22,13 @@ async function listBuckets(req, res, next) {
 }
 
 async function createBucket(req, res, next) {
+  const namespace = req.params['namespace']
   const { name } = req.body
 
   if (name === undefined) {
     next(createError('Missing parameter "name"', 400))
   } else try {
-    const response = await utils.createBucket(name)
+    const response = await utils.createBucket(namespace, name)
     await res.json(response)
   } catch (e) {
     next(e)
@@ -33,10 +36,13 @@ async function createBucket(req, res, next) {
 }
 
 async function deleteBucket(req, res, next) {
+  const namespace = req.params['namespace']
   const name = req.params['name']
 
-  try {
-    const response = await utils.deleteBucket(name)
+  if (name === undefined) {
+    next(createError('Missing parameter "name"', 400))
+  } else try {
+    const response = await utils.deleteBucket(namespace, name)
     await res.json(response)
   } catch (e) {
     next(e)

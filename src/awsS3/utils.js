@@ -30,8 +30,8 @@ async function listBuckets() {
     return await promise;
 }
 
-async function createBucket(name) {
-    const fullName = `${bucketPrefix}-${name}`;
+async function createBucket(namespace, name) {
+    const fullName = `${bucketPrefix}-${namespace}-${name}`;
     const params = {
         Bucket: fullName,
     };
@@ -51,8 +51,8 @@ async function createBucket(name) {
     return await promise;
 }
 
-async function deleteBucket(name) {
-    const fullName = `${bucketPrefix}-${name}`;
+async function deleteBucket(namespace, name) {
+    const fullName = `${bucketPrefix}-${namespace}-${name}`;
     const params = {
         Bucket: fullName,
     };
