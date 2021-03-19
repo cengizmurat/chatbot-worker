@@ -14,7 +14,7 @@ async function listBuckets(req, res, next) {
   const namespace = req.params['namespace']
 
   try {
-    const response = await utils.listBuckets()
+    const response = await utils.listBuckets(namespace)
     await res.json(response.Buckets)
   } catch (e) {
     next(e)

@@ -14,7 +14,7 @@ const s3 = new AWS.S3({
     },
 });
 
-async function listBuckets() {
+async function listBuckets(namespace) {
     const promise = new Promise(function(resolve, reject) {
         logger.log(`[AWS S3] List Buckets`, 'TRACE')
         s3.listBuckets(function(err, data) {
@@ -22,6 +22,7 @@ async function listBuckets() {
                 logger.log(err, 'ERROR')
                 reject(err);
             } else {
+                data.Buckets = data.Buckets.filter(bucket => bucket.Name.indexOf(`${bucketPrefix}-${namespace}`) === 0)
                 resolve(data);
             }
         });
