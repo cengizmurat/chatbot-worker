@@ -9,7 +9,7 @@ const router = express.Router({
 })
 
 router.get('/', listBuckets)
-router.post('/:name', createBucket)
+router.post('/', createBucket)
 router.delete('/:name', deleteBucket)
 
 async function listBuckets(req, res, next) {
@@ -22,9 +22,11 @@ async function listBuckets(req, res, next) {
 }
 
 async function createBucket(req, res, next) {
-  const name = req.params['name']
+  const { name } = req.body
 
-  try {
+  if (name === undefined) {
+    next(createError('Missing parameter "name"', 400))
+  } else try {
     const bucketName = `${bucketPrefix}-${name}`
     const response = await utils.createBucket(bucketName)
     await res.json(response)
@@ -33,12 +35,12 @@ async function createBucket(req, res, next) {
   }
 }
 
-async function deleteInstance(req, res, next) {
+async function deleteBucket(req, res, next) {
   const name = req.params['name']
 
   try {
     const bucketName = `${bucketPrefix}-${name}`
-    const response = await utils.deleteBucket(bucketName) 
+    const response = await utils.deleteBucket(bucketName)
     await res.json(response)
   } catch (e) {
     next(e)
