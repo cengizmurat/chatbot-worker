@@ -1,9 +1,7 @@
 const express = require('express')
 
-const config = require('../../config')
-const utils = require('../utils')
+const utils = require('../utils.js')
 
-const bucketPrefix = config.AWS_BUCKET_PREFIX
 const router = express.Router({
   mergeParams: true,
 })
@@ -27,8 +25,7 @@ async function createBucket(req, res, next) {
   if (name === undefined) {
     next(createError('Missing parameter "name"', 400))
   } else try {
-    const bucketName = `${bucketPrefix}-${name}`
-    const response = await utils.createBucket(bucketName)
+    const response = await utils.createBucket(name)
     await res.json(response)
   } catch (e) {
     next(e)
@@ -39,8 +36,7 @@ async function deleteBucket(req, res, next) {
   const name = req.params['name']
 
   try {
-    const bucketName = `${bucketPrefix}-${name}`
-    const response = await utils.deleteBucket(bucketName)
+    const response = await utils.deleteBucket(name)
     await res.json(response)
   } catch (e) {
     next(e)

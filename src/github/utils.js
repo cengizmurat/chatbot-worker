@@ -1,6 +1,6 @@
 const axios = require('axios')
 
-const logger = require('../logger')
+const logger = require('../logger.js')
 const config = require('../../config.js')
 
 const gitlabTimeout = parseInt(config.GITLAB_WAIT_TIMEOUT)

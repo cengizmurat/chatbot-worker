@@ -15,13 +15,13 @@ async function init() {
     app.use(cors)
     app.use(preprocessRequest)
     app.use(logRequest)
-    app.use('/', createRouter())
+    createRouter(app)
     app.use(handleError)
 
     return app
 }
 
-function createRouter() {
+function createRouter(app) {
     try {
         const router = express.Router()
         router.get('/', homeUrl)
@@ -34,7 +34,7 @@ function createRouter() {
             router.use('/openshift', require('./oseaas'))
         }
 
-        return router
+        app.use('/', router)
     } catch (e) {
         logger.log(e, 'FATAL')
     }

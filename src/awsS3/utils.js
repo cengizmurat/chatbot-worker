@@ -3,6 +3,8 @@ const AWS = require('aws-sdk');
 const config = require('../../config.js');
 const logger = require('../logger');
 
+const bucketPrefix = config.AWS_BUCKET_PREFIX
+
 // Create S3 service object
 const s3 = new AWS.S3({
     region: config.AWS_REGION,
@@ -29,12 +31,13 @@ async function listBuckets() {
 }
 
 async function createBucket(name) {
+    const fullName = `${bucketPrefix}-${name}`;
     const params = {
-        Bucket: name,
+        Bucket: fullName,
     };
 
     const promise = new Promise(function(resolve, reject) {
-        logger.log(`[AWS S3] Create Bucket ${name}`, 'TRACE')
+        logger.log(`[AWS S3] Create Bucket ${fullName}`, 'TRACE')
         s3.createBucket(params, function(err, data) {
             if (err) {
                 logger.log(err, 'ERROR')
@@ -49,12 +52,13 @@ async function createBucket(name) {
 }
 
 async function deleteBucket(name) {
+    const fullName = `${bucketPrefix}-${name}`;
     const params = {
-        Bucket: name,
+        Bucket: fullName,
     };
 
     const promise = new Promise(function(resolve, reject) {
-        logger.log(`[AWS S3] Delete Bucket ${name}`, 'TRACE')
+        logger.log(`[AWS S3] Delete Bucket ${fullName}`, 'TRACE')
         s3.deleteBucket(params, function(err, data) {
             if (err) {
                 logger.log(err, 'ERROR')
