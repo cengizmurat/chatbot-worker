@@ -27,7 +27,7 @@ function createRouter() {
         router.get('/', homeUrl)
 
         router.use('/github', require('./github'))
-        router.use('/aws-s3', require('./aws-s3'))
+        router.use('/aws-s3', require('./awsS3'))
         if (config.OPENSHIFT_TOKEN !== undefined) {
             router.use('/openshift', require('./openshift'))
         } else if (config.IAMAAS_URL !== undefined) {
