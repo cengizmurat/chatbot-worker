@@ -8,7 +8,7 @@ const router = express.Router({
 
 router.get('/namespaces/:namespace', listBuckets)
 router.post('/namespaces/:namespace', createBucket)
-router.delete('/namespaces/:namespace/:name', deleteBucket)
+router.delete('/:name', deleteBucket)
 
 async function listBuckets(req, res, next) {
   const namespace = req.params['namespace']
@@ -36,13 +36,10 @@ async function createBucket(req, res, next) {
 }
 
 async function deleteBucket(req, res, next) {
-  const namespace = req.params['namespace']
   const name = req.params['name']
 
-  if (name === undefined) {
-    next(createError('Missing parameter "name"', 400))
-  } else try {
-    const response = await utils.deleteBucket(namespace, name)
+  try {
+    const response = await utils.deleteBucket(name)
     await res.json(response)
   } catch (e) {
     next(e)

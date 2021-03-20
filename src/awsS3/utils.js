@@ -52,14 +52,13 @@ async function createBucket(namespace, name) {
     return await promise;
 }
 
-async function deleteBucket(namespace, name) {
-    const fullName = `${bucketPrefix}-${namespace}-${name}`;
+async function deleteBucket(name) {
     const params = {
-        Bucket: fullName,
+        Bucket: name,
     };
 
     const promise = new Promise(function(resolve, reject) {
-        logger.log(`[AWS S3] Delete Bucket ${fullName}`, 'TRACE')
+        logger.log(`[AWS S3] Delete Bucket ${name}`, 'TRACE')
         s3.deleteBucket(params, function(err, data) {
             if (err) {
                 logger.log(err, 'ERROR')
