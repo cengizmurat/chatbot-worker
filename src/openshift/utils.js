@@ -554,18 +554,18 @@ async function createCredentialsRequestInstance(namespace, name) {
     const url = `/apis/cloudcredential.openshift.io/v1/namespaces/${credentialsNamespace}/credentialsrequests`
 
     const bucketPrefix = config.AWS_BUCKET_PREFIX
-    const fullName = `${namespace}-${name}`
+    const fullName = `${bucketPrefix}-${namespace}-${name}`
 
     const statementEntry1 = {
         effect: 'Allow',
-        resource: `arn:aws:s3:::${bucketPrefix}-${fullName}`,
+        resource: `arn:aws:s3:::${fullName}`,
         action: [
             's3:ListBucket',
         ],
     }
     const statementEntry2 = {
         effect: 'Allow',
-        resource: `arn:aws:s3:::${bucketPrefix}-${fullName}/*`,
+        resource: `arn:aws:s3:::${fullName}/*`,
         action: [
             's3:DeleteObject',
             's3:GetObject',
