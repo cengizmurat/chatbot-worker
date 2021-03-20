@@ -5,9 +5,10 @@ const logger = require('../logger');
 
 const bucketPrefix = config.AWS_BUCKET_PREFIX
 
+const awsRegion = config.AWS_REGION
 // Create S3 service object
 const s3 = new AWS.S3({
-    region: config.AWS_REGION,
+    region: awsRegion,
     credentials: {
         accessKeyId: config.AWS_ACCESS_KEY_ID,
         secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
@@ -22,7 +23,7 @@ async function listBuckets(namespace) {
                 logger.log(err, 'ERROR')
                 reject(err);
             } else {
-                data.Buckets = data.Buckets.filter(bucket => bucket.Name.indexOf(`${bucketPrefix}-${namespace}`) === 0)
+                if (namespace) data.Buckets = data.Buckets.filter(bucket => bucket.Name.indexOf(`${bucketPrefix}-${namespace}`) === 0)
                 resolve(data);
             }
         });
@@ -35,6 +36,9 @@ async function createBucket(namespace, name) {
     const fullName = `${bucketPrefix}-${namespace}-${name}`;
     const params = {
         Bucket: fullName,
+        CreateBucketConfiguration: {
+            LocationConstraint: awsRegion,
+        },
     };
 
     const promise = new Promise(function(resolve, reject) {
