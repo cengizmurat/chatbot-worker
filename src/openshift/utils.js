@@ -267,10 +267,10 @@ async function updateProjectQuotas(projectName, size) {
 }
 
 async function createRoleBinding(roleName, projectName) {
-    const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings`
+    const url = `/apis/rbac.authorization.k8s.io/v1/namespaces/${projectName}/rolebindings`
     const body = {
         kind: 'RoleBinding',
-        apiVersion: 'rbac.authorization.k8s.io/v1beta1',
+        apiVersion: 'rbac.authorization.k8s.io/v1',
         metadata: {
             name: roleName
         },
@@ -289,7 +289,7 @@ async function createRoleBinding(roleName, projectName) {
 }
 
 async function updateRoleBinding(roleBinding, projectName) {
-    const url = `/apis/rbac.authorization.k8s.io/v1beta1/namespaces/${projectName}/rolebindings/${roleBinding.metadata.name}`
+    const url = `/apis/rbac.authorization.k8s.io/v1/namespaces/${projectName}/rolebindings/${roleBinding.metadata.name}`
     logger.log(`PUT ${config.OPENSHIFT_URL + url} ${JSON.stringify(roleBinding)}`, 'TRACE')
 
     const response = await axiosInstance.put(url, roleBinding)
@@ -299,7 +299,7 @@ async function updateRoleBinding(roleBinding, projectName) {
 async function getRoleBindings(projectName) {
     let url
     if (projectName === undefined) {
-        url = '/apis/rbac.authorization.k8s.io/v1beta1/rolebindings'
+        url = '/apis/rbac.authorization.k8s.io/v1/rolebindings'
     } else {
         url = `/apis/authorization.openshift.io/v1/namespaces/${projectName}/rolebindings`
     }
