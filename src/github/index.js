@@ -12,7 +12,7 @@ router.get('/*', getAll)
 router.put('/*', putAll)
 router.delete('/*', deleteAll)
 
-const baseUrl = config.GITHUB_URL + (config.GITHUB_URL.endsWith('/') ? '' : '/')
+const baseUrl = config.GITHUB_URL + ((config.GITHUB_URL || '').endsWith('/') ? '' : '/')
 const githubInstance = axios.create({
     headers: { Authorization: `Bearer ${config.GITHUB_TOKEN}` },
 })

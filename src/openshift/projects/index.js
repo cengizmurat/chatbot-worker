@@ -24,7 +24,7 @@ async function createProject(req, res, next) {
         next(new Error('Missing parameter "machineSet"'))
     } else try {
         const {namespace, group, type, billing, replicas, size = 'c5.xlarge', maxPrice = 1} = machineSet
-        
+
         if (namespace === undefined) {
             next(new Error('Missing parameter "namespace" in machineSet definition'))
         } else if (group === undefined) {
@@ -42,6 +42,7 @@ async function createProject(req, res, next) {
         } else if (!isNumeric(replicas)) {
             next(new Error('Parameter "replicas" in machineSet definition should be a positive integer'))
         } else {
+            /*
             await utils.createPatchedMachineSet(
                 namespace,
                 group,
@@ -51,6 +52,7 @@ async function createProject(req, res, next) {
                 size,
                 maxPrice,
             )
+            */
             const projectObj = await utils.createProjectRequest(project)
             const hypnosInstance = await createDefaultHypnos(namespace)
 
@@ -71,7 +73,7 @@ async function createProject(req, res, next) {
             await utils.updateNamespaceMetadata(projectObj, username, annotations, labels)
 
             const projectName = projectObj.metadata.name
-            await utils.updateProjectQuotas(projectName, 'small') // default project quota size
+            //await utils.updateProjectQuotas(projectName, 'small') // default project quota size
             await utils.addUserToRolebinding(projectName, 'subadmin', username, 'User')
             await res.json(await utils.getProject(projectName))
         }
