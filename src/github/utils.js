@@ -16,6 +16,8 @@ const gitlabInstance = axios.create({
     proxy: false,
 })
 
+clearRepositories()
+
 function generateMirrorUrl(url, token) {
     const protocolString = '://'
     const protocolIndex = url.indexOf(protocolString) + protocolString.length
@@ -45,7 +47,12 @@ async function mirrorRepository(req, res, next) {
             return await res.json({message: 'Malformed Git URL'})
         }
 
-        let project = await createEmptyProject(name, owner)
+        let project;
+        try {
+            project = await createEmptyProject(name, owner)
+        } catch (e) {
+            return await handleError(e, res);
+        }
 
         const newData = {
             private: isPrivate.toString().toLowerCase() === 'true',
@@ -53,11 +60,14 @@ async function mirrorRepository(req, res, next) {
             source: name,
             url: gitUrl,
         }
-        const response = await appendToDataFile(newData, repositoriesFilePath)
+        await appendToDataFile(newData)
 
         logger.log('Waiting for destination server to respond...')
-        const success = await waitForDestination(owner, name)
-        if (!success) {
+        const dataUpdated = await waitForDestination(owner, name)
+        if (!dataUpdated) {
+            deleteProject(project).finally(function() {
+                removeFromDataFile(owner, name)
+            })
             res.statusCode = 503
             return await res.json({
                 message: 'Waited too long for destination server',
@@ -69,10 +79,58 @@ async function mirrorRepository(req, res, next) {
         await configurePushMirror(project, exportUrl)
         await configurePullMirror(project, decodedUrl)
 
-        await res.json(response.data)
+        dataUpdated.destinationUrl = config.DESTINATION_URL
+        dataUpdated.middleUrl = project.web_url
+        await res.json(dataUpdated)
     } catch (e) {
         console.error(e)
         next(e)
+    }
+}
+
+async function getProject(id) {
+    if (parseInt(id).toString() !== id) {
+        id = encodeURIComponent(id)
+    }
+
+    const response = await gitlabInstance.get(`/projects/${id}`)
+    return response.data
+}
+
+async function clearRepositories() {
+    const groupResponse = await gitlabInstance.get(`/groups/${gitlabImportsGroupId}`)
+    const group = groupResponse.data
+    let data = await getDataFile()
+    for (const object of data) {
+        if (object.failed) {
+            try {
+                const project = await getProject(`${group.full_path}/${object.owner}/${object.source}`)
+                await deleteProject(project)
+                object.deletedFromSource = true
+            } catch (e) {
+                handleError(e)
+            }
+        }
+    }
+
+    await updateDataFile(data.filter(object => !(object.deletedFromSource && object.deletedFromDestination)))
+}
+
+async function handleError(e, res) {
+    const response = e.response;
+    if (response) {
+        delete response.request;
+        console.error(response);
+        if (res) {
+            res.statusCode = response.status;
+            await res.json(response.data);
+        }
+    } else {
+        console.error(e);
+        if (res) {
+            res.statusCode = 500;
+            await res.json({message: 'Unknown error'});
+        }
     }
 }
 
@@ -91,6 +149,12 @@ function parseGitUrl(url) {
 
     const token = host.substring(0, atIndex) // ignored
     return url.substring(0, protocolIndex) + url.substring(protocolIndex + atIndex + 1)
+}
+
+async function deleteProject(project) {
+    logger.log(`Delete project "${project.path_with_namespace}"...`)
+    await gitlabInstance.delete(`/projects/${project.id}`)
+    logger.log(`Project "${project.path_with_namespace}" deleted`)
 }
 
 async function createEmptyProject(name, owner) {
@@ -125,23 +189,36 @@ async function getOrCreateSubgroup(name) {
     return response.data
 }
 
-async function appendToDataFile(data, filePath, branch = 'master') {
-    const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(filePath)}`
-    const arrayData = await getDataFile(fileUrl, branch)
+async function appendToDataFile(data) {
+    const arrayData = await getDataFile()
     arrayData.push(data)
 
-    logger.log(`Updating data file "${filePath}"...`)
+    return await updateDataFile(arrayData)
+}
+
+async function removeFromDataFile(owner, repo) {
+    let arrayData = await getDataFile()
+    arrayData = arrayData.filter(data => data.owner !== owner && data.source !== repo)
+
+    return await updateDataFile(arrayData)
+}
+
+async function updateDataFile(data, branch = 'master') {
+    const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(repositoriesFilePath)}`
+
+    logger.log(`Updating data file "${repositoriesFilePath}"...`)
     const response = await gitlabInstance.put(`${fileUrl}`, {
         branch: branch,
         commit_message: "Automatic update from GitLab",
-        content: JSON.stringify(arrayData, null, 2),
+        content: JSON.stringify(data, null, 2),
     })
-    logger.log(`Data file "${filePath}" updated`)
+    logger.log(`Data file "${repositoriesFilePath}" updated`)
 
     return response.data
 }
 
-async function getDataFile(fileUrl, branch = 'master') {
+async function getDataFile(branch = 'master') {
+    const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(repositoriesFilePath)}`
     const response = await gitlabInstance.get(`${fileUrl}/raw?ref=${branch}`)
     return response.data
 }
@@ -151,23 +228,26 @@ function sleep(ms) {
 }
 
 async function waitForDestination(owner, source) {
-    const fileUrl = `/projects/${syncRepositoryId}/repository/files/${encodeURIComponent(repositoriesFilePath)}`
+    let data = await getDataFile()
     const now = new Date()
-    let data = await getDataFile(fileUrl)
     while (data.filter(object =>
       object.owner === owner &&
       object.source === source &&
       object.destination
     ).length === 0) {
         await sleep(gitlabCheckInterval * 1000)
-        data = await getDataFile(fileUrl)
+        data = await getDataFile()
         const diffSeconds = (new Date() - now) / 1000
         if (diffSeconds > gitlabTimeout) {
-            return false
+            return
         }
     }
 
-    return true
+    return data.filter(object =>
+        object.owner === owner &&
+        object.source === source &&
+        object.destination
+    )[0]
 }
 
 async function configurePushMirror(project, exportUrl) {
