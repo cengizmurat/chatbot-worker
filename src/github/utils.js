@@ -98,22 +98,26 @@ async function getProject(id) {
 }
 
 async function clearRepositories() {
+    logger.log('Clearing repositories at init...')
     const groupResponse = await gitlabInstance.get(`/groups/${gitlabImportsGroupId}`)
     const group = groupResponse.data
     let data = await getDataFile()
+    let changed = false
     for (const object of data) {
         if (object.failed) {
             try {
                 const project = await getProject(`${group.full_path}/${object.owner}/${object.source}`)
                 await deleteProject(project)
                 object.deletedFromSource = true
+                changed = true
             } catch (e) {
                 handleError(e)
             }
         }
     }
 
-    await updateDataFile(data.filter(object => !(object.deletedFromSource && object.deletedFromDestination)))
+    logger.log('Cleared repositories at init')
+    if (changed) await updateDataFile(data.filter(object => !(object.deletedFromSource && object.deletedFromDestination)))
 }
 
 async function handleError(e, res) {
