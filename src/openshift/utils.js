@@ -392,12 +392,40 @@ async function createPatchedMachineSet(namespace, group, type, billing, replicas
                 instanceSize,
                 maxPrice,
             )
+            await updateClusterPolicy(machinesetType)
         } else {
             throw e
         }
     }
 
     return machineSet
+}
+
+async function getClusterPolicy(name) {
+    const url = `/apis/nvidia.com/v1/clusterpolicies/${name}`
+
+    logger.log(`GET ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.get(config.OPENSHIFT_URL + url)
+    return response.data
+}
+
+async function updateClusterPolicy(toleration) {
+    const clusterPolicyName = "gpu-cluster-policy"
+    const clusterPolicy = await getClusterPolicy(clusterPolicyName)
+    const tolerations = clusterPolicy.spec.daemonsets.tolerations
+    tolerations.push({
+        effect: "NoSchedule",
+        key: toleration,
+        operator: "Exists",
+    })
+
+    const url = `/apis/nvidia.com/v1/clusterpolicies/${clusterPolicyName}`
+
+    logger.log(`PUT ${config.OPENSHIFT_URL + url}`, 'TRACE')
+
+    const response = await axiosInstance.put(config.OPENSHIFT_URL + url, clusterPolicy)
+    return response.data
 }
 
 async function createMachineSet(clusterName, region, namespace, group, name, instanceType, replicas, instanceSize, maxPrice = undefined) {
@@ -454,6 +482,19 @@ async function createMachineSet(clusterName, region, namespace, group, name, ins
             userDataSecret: {
                 name: "worker-user-data",
             },
+            blockDevices: [
+                {
+                    ebs: {
+                        encrypted: true,
+                        iops: 128,
+                        kmsKey: {
+                            arn: "",
+                        },
+                        volumeSize: 64,
+                        volumeType: "gp2",
+                    },
+                },
+            ],
         }
     }
     if (instanceType.indexOf('spot') > -1) {
@@ -474,6 +515,7 @@ async function createMachineSet(clusterName, region, namespace, group, name, ins
             labels: {
                 type: instanceType,
                 "cip/group": group,
+                "cluster-api/accelerator": "true",
             }
         },
         providerSpec: providerSpec,
