@@ -410,13 +410,16 @@ async function getClusterPolicy(name) {
     return response.data
 }
 
-async function updateClusterPolicy(toleration) {
+async function updateClusterPolicy(tolerationKey) {
     const clusterPolicyName = "gpu-cluster-policy"
     const clusterPolicy = await getClusterPolicy(clusterPolicyName)
     const tolerations = clusterPolicy.spec.daemonsets.tolerations
+
+    if (tolerations.filter(toleration => toleration.key === tolerationKey).length > 0) return clusterPolicy
+
     tolerations.push({
         effect: "NoSchedule",
-        key: toleration,
+        key: tolerationKey,
         operator: "Exists",
     })
 
