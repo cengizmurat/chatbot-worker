@@ -392,6 +392,7 @@ async function createPatchedMachineSet(namespace, group, type, billing, replicas
                 instanceSize,
                 maxPrice,
             )
+            await createMachineAutoscaler(namespace, fullName)
             await updateClusterPolicy(machinesetType)
         } else {
             throw e
@@ -399,6 +400,37 @@ async function createPatchedMachineSet(namespace, group, type, billing, replicas
     }
 
     return machineSet
+}
+
+async function createMachineAutoscaler(namespace, name) {
+    const url = `/apis/autoscaling.openshift.io/v1beta1/namespaces/${namespace}/machineautoscalers`
+    const metadata = {
+        name: name,
+        finalizers: [
+            "machinetarget.autoscaling.openshift.io",
+        ],
+    }
+
+    const spec = {
+        maxReplicas: 1,
+        minReplicas: 0,
+        scaleTargetRef: {
+            apiVersion: "machine.openshift.io/v1beta1",
+            kind: "MachineSet",
+            name: name,
+        },
+    }
+
+    const body = {
+        apiVersion: "autoscaling.openshift.io/v1beta1",
+        kind: "MachineAutoscaler",
+        metadata: metadata,
+        spec: spec,
+    }
+    logger.log(`POST ${config.OPENSHIFT_URL + url} ${JSON.stringify(body)}`, 'TRACE')
+
+    const response = await axiosInstance.post(url, body)
+    return response.data
 }
 
 async function getClusterPolicy(name) {
@@ -503,7 +535,6 @@ async function createMachineSet(clusterName, region, namespace, group, name, ins
     if (instanceType.indexOf('spot') > -1) {
         providerSpec.value['InstanceLifecycle'] = 'spot'
         providerSpec.value.spotMarketOptions = {
-            maxPrice: maxPrice,
         }
     }
     const taints = [
